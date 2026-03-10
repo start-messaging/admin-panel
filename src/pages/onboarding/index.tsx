@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -9,7 +8,6 @@ import {
   type SubmitKycPayload,
 } from '@/apis/onboarding.api';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Button } from '@/components/ui/button';
 import { Check, Phone, Building2, ShieldCheck, Loader2 } from 'lucide-react';
 import { MobileVerificationStep } from './mobile-verification-step';
 import { BusinessDetailsStep } from './business-details-step';
