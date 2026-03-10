@@ -1,0 +1,42 @@
+export type MessageStatus = 'queued' | 'sent' | 'delivered' | 'failed' | 'expired';
+
+export interface AdminMessage {
+  id: string;
+  userId: string;
+  phoneNumber: string;
+  content: string;
+  provider: string;
+  providerMsgId: string | null;
+  status: MessageStatus;
+  statusHistory: { status: string; timestamp: string }[];
+  costAmount: number;
+  failureReason: string | null;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  otpRequestId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerOverview {
+  wallet: { balance: number; currency: string };
+  messages: {
+    totalMessages: number;
+    totalSpent: number;
+    statusBreakdown: Record<string, number>;
+  };
+  apiKeyCount: number;
+}
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  type: 'credit' | 'debit' | 'refund';
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  referenceType: string | null;
+  referenceId: string | null;
+  description: string;
+  createdAt: string;
+}
