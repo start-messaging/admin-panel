@@ -130,7 +130,11 @@ export function AdminLayout() {
             variant="ghost"
             size="sm"
             className="w-full justify-start gap-3 px-3 text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-            onClick={logout}
+            onClick={() => {
+              if (window.confirm('Are you sure you want to sign out?')) {
+                logout();
+              }
+            }}
           >
             <LogOut className="size-4" />
             Sign out

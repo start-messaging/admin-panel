@@ -19,13 +19,14 @@ export function SignInPage() {
 
     try {
       const { accessToken, user } = await googleLogin({ idToken });
-      login(accessToken, user);
 
-      if (user.role === 'admin') {
-        navigate(ROUTES.DASHBOARD, { replace: true });
-      } else {
-        navigate(ROUTES.ONBOARDING, { replace: true });
+      if (user.role !== 'admin') {
+        toast.error('Access denied. Admin only.');
+        return;
       }
+
+      login(accessToken, user);
+      navigate(ROUTES.DASHBOARD, { replace: true });
     } catch (error) {
       toast.error(getApiErrorMessage(error));
     }

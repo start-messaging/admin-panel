@@ -4,7 +4,6 @@ export const STORAGE_KEYS = {
 
 export const ROUTES = {
   SIGN_IN: '/sign-in',
-  ONBOARDING: '/onboarding',
   DASHBOARD: '/dashboard',
   CUSTOMERS: '/customers',
   CUSTOMER_DETAIL: '/customers/:userId',

@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  History,
+  Activity,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -32,6 +34,8 @@ import {
   updateUserStatus,
   getCustomerOverview,
   getCustomerMessages,
+  getCustomerTransactions,
+  getCustomerApiKeys,
 } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -61,14 +65,25 @@ const STATUS_BADGE: Record<string, string> = {
   expired: 'bg-gray-100 text-gray-500',
 };
 
-function formatINR(amount: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+const TRANSACTION_BADGE: Record<string, string> = {
+  credit: 'bg-green-100 text-green-700',
+  debit: 'bg-red-100 text-red-700',
+  refund: 'bg-blue-100 text-blue-700',
+};
+
+function formatINR(amount: number | string) {
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(amount));
 }
+
+type TabType = 'overview' | 'messages' | 'transactions' | 'api-keys';
 
 export function CustomerDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Navigation tabs
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   // Message filters
   const [messagesPage, setMessagesPage] = useState(1);
@@ -77,6 +92,9 @@ export function CustomerDetailPage() {
   const [phoneInput, setPhoneInput] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Transaction state
+  const [transactionsPage, setTransactionsPage] = useState(1);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['admin', 'user', userId],
@@ -110,7 +128,19 @@ export function CustomerDetailPage() {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
-    enabled: !!userId,
+    enabled: !!userId && activeTab === 'messages',
+  });
+
+  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+    queryKey: ['admin', 'user-transactions', userId, transactionsPage],
+    queryFn: () => getCustomerTransactions(userId!, { page: transactionsPage, limit: 20 }),
+    enabled: !!userId && activeTab === 'transactions',
+  });
+
+  const { data: apiKeys, isLoading: apiKeysLoading } = useQuery({
+    queryKey: ['admin', 'user-api-keys', userId],
+    queryFn: () => getCustomerApiKeys(userId!),
+    enabled: !!userId && activeTab === 'api-keys',
   });
 
   const statusMutation = useMutation({
@@ -120,8 +150,6 @@ export function CustomerDetailPage() {
         updatedUser.isActive ? 'User activated successfully' : 'User suspended successfully',
       );
       queryClient.invalidateQueries({ queryKey: ['admin', 'user', userId] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error));
@@ -168,7 +196,11 @@ export function CustomerDetailPage() {
 
   const messages = messagesData?.data ?? [];
   const msgPagination = messagesData?.pagination;
-  const totalPages = msgPagination ? Math.ceil(msgPagination.total / msgPagination.limit) : 0;
+  const totalMsgPages = msgPagination ? Math.ceil(msgPagination.total / msgPagination.limit) : 0;
+
+  const transactions = transactionsData?.data ?? [];
+  const txPagination = transactionsData?.pagination;
+  const totalTxPages = txPagination ? Math.ceil(txPagination.total / txPagination.limit) : 0;
 
   return (
     <div className="space-y-6">
@@ -218,199 +250,251 @@ export function CustomerDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Summary Stats */}
-        {overview && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:col-span-2">
-            <StatCard
-              icon={Wallet}
-              label="Wallet Balance"
-              value={formatINR(overview.wallet.balance)}
-            />
-            <StatCard
-              icon={MessageSquare}
-              label="Total Messages"
-              value={overview.messages.totalMessages.toLocaleString('en-IN')}
-            />
-            <StatCard
-              icon={IndianRupee}
-              label="Total Spent"
-              value={formatINR(overview.messages.totalSpent)}
-            />
-            <StatCard
-              icon={Key}
-              label="API Keys"
-              value={overview.apiKeyCount.toString()}
-            />
-          </div>
-        )}
-
-        {/* Profile Information */}
-        <div className="rounded-xl border bg-card p-5">
-          <h2 className="mb-4 flex items-center gap-2 font-semibold">
-            <UserIcon className="size-4 text-muted-foreground" />
-            Profile Information
-          </h2>
-          <div className="space-y-3">
-            <InfoRow icon={Mail} label="Email" value={user.email} />
-            <InfoRow icon={Phone} label="Mobile" value={user.mobileNumber ?? 'Not provided'} />
-            <InfoRow icon={Globe} label="Country" value={user.country ?? 'Not provided'} />
-            <InfoRow
-              icon={CheckCircle2}
-              label="Mobile Verified"
-              value={user.mobileVerified ? 'Yes' : 'No'}
-              valueClassName={user.mobileVerified ? 'text-green-600' : 'text-muted-foreground'}
-            />
-            <InfoRow
-              icon={Calendar}
-              label="Registered"
-              value={new Date(user.createdAt).toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            />
-          </div>
+      {/* Overview Stats */}
+      {overview && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard
+            icon={Wallet}
+            label="Wallet Balance"
+            value={formatINR(overview.wallet.balance)}
+          />
+          <StatCard
+            icon={MessageSquare}
+            label="Total Messages"
+            value={overview.messages.totalMessages.toLocaleString('en-IN')}
+          />
+          <StatCard
+            icon={IndianRupee}
+            label="Total Spent"
+            value={formatINR(overview.messages.totalSpent)}
+          />
+          <StatCard icon={Key} label="API Keys" value={overview.apiKeyCount.toString()} />
         </div>
+      )}
 
-        {/* Account Details */}
-        <div className="rounded-xl border bg-card p-5">
-          <h2 className="mb-4 flex items-center gap-2 font-semibold">
-            <Shield className="size-4 text-muted-foreground" />
-            Account Details
-          </h2>
-          <div className="space-y-3">
-            <InfoRow
-              icon={UserIcon}
-              label="Role"
-              value={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-            />
-            <InfoRow
-              icon={CheckCircle2}
-              label="Onboarding"
-              value={user.hasCompletedOnboarding ? 'Completed' : 'Incomplete'}
-              valueClassName={
-                user.hasCompletedOnboarding ? 'text-green-600' : 'text-amber-600'
-              }
-            />
-            <InfoRow
-              icon={Building2}
-              label="Company"
-              value={user.companyName ?? 'Not provided'}
-            />
-            <InfoRow
-              icon={Globe}
-              label="Website"
-              value={user.websiteUrl ?? 'Not provided'}
-              isLink={!!user.websiteUrl}
-            />
-          </div>
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-lg border bg-muted/50 p-1">
+        {(
+          [
+            { id: 'overview', label: 'Overview', icon: UserIcon },
+            { id: 'messages', label: 'Messages', icon: MessageSquare },
+            { id: 'transactions', label: 'Transactions', icon: History },
+            { id: 'api-keys', label: 'API Keys', icon: Key },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as TabType)}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all',
+              activeTab === tab.id
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <tab.icon className="size-3.5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        {/* Business / KYC Details */}
-        <div className="rounded-xl border bg-card p-5 lg:col-span-2">
-          <h2 className="mb-4 flex items-center gap-2 font-semibold">
-            <Building2 className="size-4 text-muted-foreground" />
-            Business & KYC Details
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoRow
-              icon={Building2}
-              label="Business Name"
-              value={user.businessName ?? 'Not provided'}
-            />
-            <InfoRow icon={FileText} label="PAN" value={user.pan ?? 'Not provided'} />
-            <InfoRow icon={FileText} label="GSTIN" value={user.gstin ?? 'Not provided'} />
-            <InfoRow
-              icon={MapPin}
-              label="Business Address"
-              value={user.businessAddress ?? 'Not provided'}
-            />
-            {user.kycSubmittedAt && (
+      {activeTab === 'overview' && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Profile Information */}
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 font-semibold">
+              <UserIcon className="size-4 text-muted-foreground" />
+              Profile Information
+            </h2>
+            <div className="space-y-3">
+              <InfoRow icon={Mail} label="Email" value={user.email} />
+              <InfoRow
+                icon={Phone}
+                label="Mobile"
+                value={user.mobileNumber ?? 'Not provided'}
+              />
+              <InfoRow icon={Globe} label="Country" value={user.country ?? 'Not provided'} />
+              <InfoRow
+                icon={CheckCircle2}
+                label="Mobile Verified"
+                value={user.mobileVerified ? 'Yes' : 'No'}
+                valueClassName={user.mobileVerified ? 'text-green-600' : 'text-muted-foreground'}
+              />
               <InfoRow
                 icon={Calendar}
-                label="KYC Submitted"
-                value={new Date(user.kycSubmittedAt).toLocaleDateString('en-IN', {
+                label="Registered"
+                value={new Date(user.createdAt).toLocaleDateString('en-IN', {
                   day: 'numeric',
                   month: 'long',
                   year: 'numeric',
                 })}
               />
-            )}
-            {user.kycReviewedAt && (
-              <InfoRow
-                icon={Calendar}
-                label="KYC Reviewed"
-                value={new Date(user.kycReviewedAt).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              />
-            )}
+            </div>
           </div>
 
-          {/* Rejection reason */}
+          {/* Activity / Last Login */}
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 font-semibold">
+              <Activity className="size-4 text-muted-foreground" />
+              Activity & Security
+            </h2>
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                    <Clock className="size-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Last Login</p>
+                    <p className="text-sm font-medium">
+                      {user.lastLoginAt 
+                        ? new Date(user.lastLoginAt).toLocaleString('en-IN', {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })
+                        : 'Never'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg bg-muted/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                    <Globe className="size-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Last Login IP</p>
+                    <p className="text-sm font-mono">{user.lastLoginIp ?? 'No IP tracked'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Account Details */}
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 font-semibold">
+              <Shield className="size-4 text-muted-foreground" />
+              Account Details
+            </h2>
+            <div className="space-y-3">
+              <InfoRow
+                icon={UserIcon}
+                label="Role"
+                value={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              />
+              <InfoRow
+                icon={CheckCircle2}
+                label="Onboarding"
+                value={user.hasCompletedOnboarding ? 'Completed' : 'Incomplete'}
+                valueClassName={user.hasCompletedOnboarding ? 'text-green-600' : 'text-amber-600'}
+              />
+              <InfoRow
+                icon={Building2}
+                label="Company"
+                value={user.companyName ?? 'Not provided'}
+              />
+              <InfoRow
+                icon={Globe}
+                label="Website"
+                value={user.websiteUrl ?? 'Not provided'}
+                isLink={!!user.websiteUrl}
+              />
+            </div>
+          </div>
+
+          {/* Business / KYC Details */}
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 font-semibold">
+              <Building2 className="size-4 text-muted-foreground" />
+              Business & KYC Details
+            </h2>
+            <div className="space-y-3">
+              <InfoRow
+                icon={Building2}
+                label="Business Name"
+                value={user.businessName ?? 'Not provided'}
+              />
+              <InfoRow icon={FileText} label="PAN" value={user.pan ?? 'Not provided'} />
+              <InfoRow icon={FileText} label="GSTIN" value={user.gstin ?? 'Not provided'} />
+              <InfoRow
+                icon={MapPin}
+                label="Business Address"
+                value={user.businessAddress ?? 'Not provided'}
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="rounded-xl border bg-card p-5 shadow-sm lg:col-span-2">
+            <h2 className="mb-4 font-semibold">Management Actions</h2>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant={user.isActive ? 'destructive' : 'default'}
+                size="sm"
+                className="gap-2"
+                disabled={statusMutation.isPending}
+                onClick={() => statusMutation.mutate(!user.isActive)}
+              >
+                {statusMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : user.isActive ? (
+                  <ToggleLeft className="size-4" />
+                ) : (
+                  <ToggleRight className="size-4" />
+                )}
+                {user.isActive ? 'Suspend User' : 'Activate User'}
+              </Button>
+              {user.kycStatus !== 'not_submitted' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => navigate(`/kyc-review/${user.id}`)}
+                >
+                  <FileText className="size-4" />
+                  View KYC Details
+                </Button>
+              )}
+            </div>
+          </div>
+
           {user.kycStatus === 'rejected' && user.kycRejectionReason && (
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-medium text-red-700">Rejection Reason</p>
-              <p className="mt-1 text-sm text-red-600">{user.kycRejectionReason}</p>
+            <div className="rounded-xl border border-red-100 bg-red-50/50 p-5 shadow-sm lg:col-span-2">
+              <div className="flex items-center gap-2 text-red-700">
+                <XCircle className="size-4" />
+                <h3 className="text-sm font-semibold">KYC Rejection Reason</h3>
+              </div>
+              <p className="mt-2 text-sm text-red-600 leading-relaxed italic">
+                "{user.kycRejectionReason}"
+              </p>
             </div>
           )}
         </div>
+      )}
 
-        {/* Actions */}
-        <div className="rounded-xl border bg-card p-5 lg:col-span-2">
-          <h2 className="mb-4 font-semibold">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant={user.isActive ? 'destructive' : 'default'}
-              size="sm"
-              disabled={statusMutation.isPending}
-              onClick={() => statusMutation.mutate(!user.isActive)}
-            >
-              {statusMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : user.isActive ? (
-                <ToggleLeft className="size-4" />
-              ) : (
-                <ToggleRight className="size-4" />
-              )}
-              {user.isActive ? 'Suspend User' : 'Activate User'}
-            </Button>
-            {user.kycStatus !== 'not_submitted' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/kyc-review/${user.id}`)}
-              >
-                <FileText className="size-4" />
-                View KYC Details
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Message History */}
-        <div className="rounded-xl border bg-card p-5 lg:col-span-2">
+      {activeTab === 'messages' && (
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-4 flex items-center gap-2 font-semibold">
             <MessageSquare className="size-4 text-muted-foreground" />
             Message History
           </h2>
 
           {/* Filters */}
-          <div className="mb-4 flex flex-wrap items-end gap-2">
-            <div>
-              <label className="mb-1 block text-xs text-muted-foreground">Status</label>
+          <div className="mb-4 flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground">Status</label>
               <select
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+                className="h-9 w-32 rounded-md border bg-background px-3 text-xs"
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value as 'all' | MessageStatus);
                   setMessagesPage(1);
                 }}
               >
-                <option value="all">All</option>
+                <option value="all">All Status</option>
                 <option value="queued">Queued</option>
                 <option value="sent">Sent</option>
                 <option value="delivered">Delivered</option>
@@ -418,23 +502,23 @@ export function CustomerDetailPage() {
                 <option value="expired">Expired</option>
               </select>
             </div>
-            <div>
-              <label className="mb-1 block text-xs text-muted-foreground">Phone</label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground">Phone</label>
               <input
                 type="text"
-                placeholder="Search phone..."
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+                placeholder="Ex: +91..."
+                className="h-9 w-40 rounded-md border bg-background px-3 text-xs"
                 value={phoneInput}
                 onChange={(e) => setPhoneInput(e.target.value)}
                 onBlur={applyPhoneFilter}
                 onKeyDown={(e) => e.key === 'Enter' && applyPhoneFilter()}
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs text-muted-foreground">From</label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground">From Date</label>
               <input
                 type="date"
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+                className="h-9 rounded-md border bg-background px-3 text-xs"
                 value={startDate}
                 onChange={(e) => {
                   setStartDate(e.target.value);
@@ -442,11 +526,11 @@ export function CustomerDetailPage() {
                 }}
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs text-muted-foreground">To</label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground">To Date</label>
               <input
                 type="date"
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+                className="h-9 rounded-md border bg-background px-3 text-xs"
                 value={endDate}
                 onChange={(e) => {
                   setEndDate(e.target.value);
@@ -455,62 +539,57 @@ export function CustomerDetailPage() {
               />
             </div>
             {hasFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="size-3" />
-                Clear
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs h-9">
+                <X className="mr-2 size-3" />
+                Clear Filters
               </Button>
             )}
           </div>
 
-          {/* Table */}
           {messagesLoading ? (
-            <div className="flex h-32 items-center justify-center">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            <div className="flex h-48 items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex h-32 flex-col items-center justify-center gap-2 text-muted-foreground">
-              <MessageSquare className="size-8" />
-              <p className="text-sm">No messages found</p>
+            <div className="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+              <MessageSquare className="size-8 opacity-20" />
+              <p className="text-sm font-medium">No messages found</p>
             </div>
           ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+            <div className="space-y-4">
+              <div className="overflow-x-auto rounded-lg border">
+                <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b text-left text-xs text-muted-foreground">
-                      <th className="pb-2 pr-4 font-medium">Phone Number</th>
-                      <th className="pb-2 pr-4 font-medium">Status</th>
-                      <th className="pb-2 pr-4 font-medium">Provider</th>
-                      <th className="pb-2 pr-4 font-medium">Cost</th>
-                      <th className="pb-2 pr-4 font-medium">Failure Reason</th>
-                      <th className="pb-2 font-medium">Created At</th>
+                    <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+                      <th className="px-4 py-2.5 font-semibold">Recipient</th>
+                      <th className="px-4 py-2.5 font-semibold">Status</th>
+                      <th className="px-4 py-2.5 font-semibold">Provider</th>
+                      <th className="px-4 py-2.5 font-semibold text-right">Cost</th>
+                      <th className="px-4 py-2.5 font-semibold">Reason</th>
+                      <th className="px-4 py-2.5 font-semibold">Sent At</th>
                     </tr>
                   </thead>
                   <tbody>
                     {messages.map((msg) => (
-                      <tr key={msg.id} className="border-b last:border-0">
-                        <td className="py-2.5 pr-4 font-mono text-xs">{msg.phoneNumber}</td>
-                        <td className="py-2.5 pr-4">
+                      <tr key={msg.id} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-4 py-3 font-mono text-[11px]">{msg.phoneNumber}</td>
+                        <td className="px-4 py-3">
                           <span
                             className={cn(
-                              'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                              'inline-flex rounded-full px-2 py-0.5 font-bold uppercase text-[9px]',
                               STATUS_BADGE[msg.status] ?? 'bg-gray-100 text-gray-600',
                             )}
                           >
                             {msg.status}
                           </span>
                         </td>
-                        <td className="py-2.5 pr-4 text-xs">{msg.provider}</td>
-                        <td className="py-2.5 pr-4 text-xs">{formatINR(Number(msg.costAmount))}</td>
-                        <td className="max-w-[200px] truncate py-2.5 pr-4 text-xs text-muted-foreground">
+                        <td className="px-4 py-3 text-muted-foreground">{msg.provider}</td>
+                        <td className="px-4 py-3 text-right font-medium">{formatINR(msg.costAmount)}</td>
+                        <td className="max-w-[150px] truncate px-4 py-3 text-muted-foreground">
                           {msg.failureReason ?? '-'}
                         </td>
-                        <td className="py-2.5 text-xs text-muted-foreground">
-                          {new Date(msg.createdAt).toLocaleDateString('en-IN')}{' '}
-                          {new Date(msg.createdAt).toLocaleTimeString('en-IN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                        <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted-foreground">
+                          {new Date(msg.createdAt).toLocaleDateString('en-IN')} {new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                         </td>
                       </tr>
                     ))}
@@ -518,36 +597,165 @@ export function CustomerDetailPage() {
                 </table>
               </div>
 
-              {/* Pagination */}
-              {msgPagination && totalPages > 0 && (
-                <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Page {msgPagination.page} of {totalPages} ({msgPagination.total} total)
-                  </span>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      disabled={messagesPage <= 1}
-                      onClick={() => setMessagesPage((p) => p - 1)}
-                    >
-                      <ChevronLeft className="size-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      disabled={messagesPage >= totalPages}
-                      onClick={() => setMessagesPage((p) => p + 1)}
-                    >
-                      <ChevronRight className="size-4" />
-                    </Button>
-                  </div>
-                </div>
+              {msgPagination && totalMsgPages > 1 && (
+                <PaginationFooter
+                  page={msgPagination.page}
+                  totalPages={totalMsgPages}
+                  totalItems={msgPagination.total}
+                  onPageChange={setMessagesPage}
+                />
               )}
-            </>
+            </div>
           )}
         </div>
-      </div>
+      )}
+
+      {activeTab === 'transactions' && (
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 font-semibold">
+            <History className="size-4 text-muted-foreground" />
+            Wallet Transaction Log
+          </h2>
+
+          {transactionsLoading ? (
+            <div className="flex h-48 items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+              <History className="size-8 opacity-20" />
+              <p className="text-sm font-medium">No transactions found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="overflow-x-auto rounded-lg border">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+                      <th className="px-4 py-2.5 font-semibold">Description</th>
+                      <th className="px-4 py-2.5 font-semibold">Type</th>
+                      <th className="px-4 py-2.5 font-semibold text-right">Amount</th>
+                      <th className="px-4 py-2.5 font-semibold text-right">Balance After</th>
+                      <th className="px-4 py-2.5 font-semibold text-center">Ref</th>
+                      <th className="px-4 py-2.5 font-semibold">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((tx) => (
+                      <tr key={tx.id} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-4 py-3 font-medium">{tx.description}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={cn(
+                              'inline-flex rounded-full px-2 py-0.5 font-bold uppercase text-[9px]',
+                              TRANSACTION_BADGE[tx.type] ?? 'bg-gray-100 text-gray-600',
+                            )}
+                          >
+                            {tx.type}
+                          </span>
+                        </td>
+                        <td className={cn(
+                          'px-4 py-3 text-right font-bold tabular-nums',
+                          tx.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                        )}>
+                          {tx.type === 'credit' ? '+' : '-'}{formatINR(tx.amount)}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium tabular-nums text-muted-foreground">
+                          {formatINR(tx.balanceAfter)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                           <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground capitalize">
+                             {tx.referenceType ?? 'sys'}
+                           </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted-foreground">
+                          {new Date(tx.createdAt).toLocaleDateString('en-IN')} {new Date(tx.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {txPagination && totalTxPages > 1 && (
+                <PaginationFooter
+                  page={txPagination.page}
+                  totalPages={totalTxPages}
+                  totalItems={txPagination.total}
+                  onPageChange={setTransactionsPage}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'api-keys' && (
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 font-semibold">
+            <Key className="size-4 text-muted-foreground" />
+            API Key Activity
+          </h2>
+
+          {apiKeysLoading ? (
+            <div className="flex h-48 items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : !apiKeys || apiKeys.length === 0 ? (
+            <div className="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+              <Key className="size-8 opacity-20" />
+              <p className="text-sm font-medium">No active API keys found</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {apiKeys.map((key) => (
+                <div key={key.id} className="group relative overflow-hidden rounded-xl border bg-card p-4 transition-all hover:bg-muted/10 hover:shadow-md">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-bold flex items-center gap-2">
+                        {key.label || 'Unnamed Key'}
+                        <span className={cn(
+                          "size-2 rounded-full",
+                          key.isActive ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-400"
+                        )} />
+                      </h3>
+                      <p className="font-mono text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded w-fit">
+                        {key.keyPrefix}••••••••••••
+                      </p>
+                    </div>
+                    <div className="text-right text-[10px] text-muted-foreground">
+                      <p>Created: {new Date(key.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div className="rounded-lg bg-muted/40 p-2 text-center">
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground tracking-tight">Last Used</p>
+                      <p className="mt-0.5 text-[11px] font-medium">
+                        {key.lastUsedAt 
+                          ? new Date(key.lastUsedAt).toLocaleDateString('en-IN', { 
+                              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
+                            })
+                          : 'Never'
+                        }
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-muted/40 p-2 text-center">
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground tracking-tight">IP Restrictions</p>
+                      <p className="mt-0.5 text-[11px] font-medium">
+                        {key.allowedIps && key.allowedIps.length > 0
+                          ? `${key.allowedIps.length} IPs Restricted`
+                          : 'Publicly Accessible'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -557,17 +765,17 @@ function StatCard({
   label,
   value,
 }: {
-  icon: typeof Wallet;
+  icon: any;
   label: string;
   value: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="rounded-xl border bg-card p-4 shadow-sm">
       <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className="size-4" />
-        <span className="text-xs">{label}</span>
+        <Icon className="size-3.5" />
+        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
       </div>
-      <p className="mt-1 text-lg font-bold">{value}</p>
+      <p className="mt-1 text-lg font-bold tabular-nums">{value}</p>
     </div>
   );
 }
@@ -579,7 +787,7 @@ function InfoRow({
   isLink,
   valueClassName,
 }: {
-  icon: typeof Mail;
+  icon: any;
   label: string;
   value: string;
   isLink?: boolean;
@@ -589,19 +797,57 @@ function InfoRow({
     <div className="flex items-start gap-3">
       <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">{label}</p>
         {isLink ? (
           <a
             href={value}
             target="_blank"
             rel="noopener noreferrer"
-            className="truncate text-sm text-primary hover:underline"
+            className="truncate text-sm text-primary hover:underline font-medium"
           >
             {value}
           </a>
         ) : (
-          <p className={cn('text-sm', valueClassName)}>{value}</p>
+          <p className={cn('text-sm font-medium', valueClassName)}>{value}</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+function PaginationFooter({
+  page,
+  totalPages,
+  totalItems,
+  onPageChange
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (p: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-2 border-t mt-2">
+      <p className="text-[11px] text-muted-foreground">
+        Page <strong>{page}</strong> of {totalPages} ({totalItems} records)
+      </p>
+      <div className="flex gap-1">
+        <Button
+          variant="outline"
+          size="icon-xs"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+        >
+          <ChevronLeft className="size-3.5" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon-xs"
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+        >
+          <ChevronRight className="size-3.5" />
+        </Button>
       </div>
     </div>
   );

@@ -11,4 +11,5 @@ export type {
   AdminMessage,
   CustomerOverview,
   WalletTransaction,
+  AdminApiKey,
 } from './admin';

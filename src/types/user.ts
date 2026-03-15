@@ -23,5 +23,7 @@ export interface User {
   kycReviewedAt: string | null;
   kycReviewedBy: string | null;
   kycRejectionReason: string | null;
+  lastLoginAt: string | null;
+  lastLoginIp: string | null;
   createdAt: string;
 }
