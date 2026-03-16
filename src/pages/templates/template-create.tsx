@@ -24,6 +24,8 @@ export function TemplateCreatePage() {
   const [body, setBody] = useState('');
   const [channelId, setChannelId] = useState('');
   const [language, setLanguage] = useState('en');
+  const [twoFactorTemplate, setTwoFactorTemplate] = useState('');
+  const [fast2SmsDltId, setFast2SmsDltId] = useState('');
 
   const { data: channels } = useQuery({
     queryKey: ['admin', 'channels'],
@@ -64,6 +66,10 @@ export function TemplateCreatePage() {
       body: body.trim(),
       channelId,
       language: language.trim() || undefined,
+      metadata: {
+        '2factor': twoFactorTemplate.trim() || undefined,
+        fast2sms: fast2SmsDltId.trim() || undefined,
+      },
     });
   }
 
@@ -146,7 +152,6 @@ export function TemplateCreatePage() {
               <p className="text-xs text-red-500">Body must contain {'{{otp}}'} placeholder</p>
             )}
           </div>
-
           {/* Language */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Language</label>
@@ -158,6 +163,34 @@ export function TemplateCreatePage() {
               maxLength={10}
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
+          </div>
+
+          {/* Provider Specific Metadata */}
+          <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/30 p-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase text-muted-foreground">
+                2Factor Template Name
+              </label>
+              <input
+                type="text"
+                value={twoFactorTemplate}
+                onChange={(e) => setTwoFactorTemplate(e.target.value)}
+                placeholder="e.g. OTP1"
+                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase text-muted-foreground">
+                Fast2SMS DLT ID
+              </label>
+              <input
+                type="text"
+                value={fast2SmsDltId}
+                onChange={(e) => setFast2SmsDltId(e.target.value)}
+                placeholder="e.g. 120716..."
+                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
           </div>
 
           {/* Submit */}

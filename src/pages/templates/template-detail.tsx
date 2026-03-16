@@ -60,6 +60,8 @@ export function TemplateDetailPage() {
   const [editName, setEditName] = useState('');
   const [editBody, setEditBody] = useState('');
   const [editLanguage, setEditLanguage] = useState('');
+  const [editTwoFactorTemplate, setEditTwoFactorTemplate] = useState('');
+  const [editFast2SmsDltId, setEditFast2SmsDltId] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: template, isLoading } = useQuery({
@@ -124,6 +126,8 @@ export function TemplateDetailPage() {
     setEditName(template.name);
     setEditBody(template.body);
     setEditLanguage(template.language ?? '');
+    setEditTwoFactorTemplate((template.metadata?.['2factor'] as string) ?? '');
+    setEditFast2SmsDltId((template.metadata?.fast2sms as string) ?? '');
     setEditing(true);
   }
 
@@ -135,6 +139,16 @@ export function TemplateDetailPage() {
     if (editBody.trim() !== template.body) payload.body = editBody.trim();
     if ((editLanguage.trim() || null) !== template.language)
       payload.language = editLanguage.trim() || undefined;
+
+    const newMetadata = {
+      ...template.metadata,
+      '2factor': editTwoFactorTemplate.trim() || undefined,
+      fast2sms: editFast2SmsDltId.trim() || undefined,
+    };
+
+    if (JSON.stringify(newMetadata) !== JSON.stringify(template.metadata)) {
+      payload.metadata = newMetadata;
+    }
 
     if (Object.keys(payload).length === 0) {
       setEditing(false);
@@ -356,6 +370,34 @@ export function TemplateDetailPage() {
                   className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+
+              {/* Provider Metadata */}
+              <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/30 p-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">
+                    2Factor Template Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editTwoFactorTemplate}
+                    onChange={(e) => setEditTwoFactorTemplate(e.target.value)}
+                    placeholder="e.g. OTP1"
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">
+                    Fast2SMS DLT ID
+                  </label>
+                  <input
+                    type="text"
+                    value={editFast2SmsDltId}
+                    onChange={(e) => setEditFast2SmsDltId(e.target.value)}
+                    placeholder="e.g. 120716..."
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -387,6 +429,21 @@ export function TemplateDetailPage() {
                 <div>
                   <p className="text-xs text-muted-foreground">Template ID</p>
                   <p className="truncate font-mono text-xs">{template.id}</p>
+                </div>
+              </div>
+
+              {/* Display Metadata */}
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <h3 className="text-xs font-bold uppercase text-muted-foreground">Provider Settings</h3>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">2Factor Name</p>
+                    <p className="mt-0.5 text-sm font-semibold">{(template.metadata?.['2factor'] as string) || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Fast2SMS DLT ID</p>
+                    <p className="mt-0.5 text-sm font-semibold">{(template.metadata?.fast2sms as string) || '—'}</p>
+                  </div>
                 </div>
               </div>
             </div>
