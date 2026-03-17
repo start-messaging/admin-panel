@@ -40,3 +40,14 @@ export interface WalletTransaction {
   description: string;
   createdAt: string;
 }
+
+export interface AdminApiKey {
+  id: string;
+  userId: string;
+  keyPrefix: string;
+  label: string;
+  lastUsedAt: string | null;
+  isActive: boolean;
+  allowedIps: string[] | null;
+  createdAt: string;
+}

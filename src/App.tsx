@@ -1,12 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { GuestRoute } from '@/components/guards/guest-route';
 import { ProtectedRoute } from '@/components/guards/protected-route';
-import { CustomerRoute } from '@/components/guards/customer-route';
 import { AuthLayout } from '@/components/layouts/auth-layout';
 import { AdminLayout } from '@/components/layouts/admin-layout';
 import { SignInPage } from '@/pages/signIn';
 import { DashboardPage } from '@/pages/dashboard';
-import { OnboardingPage } from '@/pages/onboarding';
 import { CustomersPage } from '@/pages/customers';
 import { CustomerDetailPage } from '@/pages/customers/customer-detail';
 import { KycReviewPage } from '@/pages/kyc-review';
@@ -26,10 +24,6 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* Customer — onboarding */}
-      <Route element={<CustomerRoute />}>
-        <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
-      </Route>
 
       {/* Protected — admin only */}
       <Route element={<ProtectedRoute />}>

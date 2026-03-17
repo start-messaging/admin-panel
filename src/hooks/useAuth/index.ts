@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { getMe } from '@/apis/user.api';
 import { logoutApi } from '@/apis/auth.api';
-import { STORAGE_KEYS } from '@/lib/constants';
+import { ROUTES, STORAGE_KEYS } from '@/lib/constants';
 import type { User } from '@/types';
 
 const AUTH_QUERY_KEY = ['auth', 'me'] as const;
@@ -35,6 +35,7 @@ export function useAuth() {
     } finally {
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       queryClient.clear();
+      window.location.href = ROUTES.SIGN_IN;
     }
   }, [queryClient]);
 

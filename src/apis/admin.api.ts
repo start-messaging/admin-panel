@@ -8,17 +8,34 @@ import type {
   AdminMessage,
   CustomerOverview,
   WalletTransaction,
+  AdminApiKey,
   MessageStatus,
 } from '@/types';
 
 // ── Types ──────────────────────────────────────────────
 
 export interface DashboardStats {
-  totalUsers: number;
-  activeUsers: number;
-  totalMessages: number;
-  totalRevenue: number;
-  pendingKycCount: number;
+  overview: {
+    totalUsers: number;
+    activeUsers: number;
+    totalMessages: number;
+    totalRevenue: number;
+    pendingKycCount: number;
+  };
+  growth: {
+    newUsersToday: number;
+    newUsersThisWeek: number;
+  };
+  performance: {
+    successRate: number;
+    messagesToday: number;
+    revenueToday: number;
+    failedMessages: number;
+  };
+  trends: {
+    messages: { date: string; total: number; delivered: number; failed: number }[];
+    revenue: { date: string; revenue: number }[];
+  };
 }
 
 export interface Pagination {
@@ -120,6 +137,10 @@ export function getCustomerTransactions(
   return apiGet<PaginatedResponse<WalletTransaction>>(`/admin/users/${userId}/transactions`, {
     params,
   });
+}
+
+export function getCustomerApiKeys(userId: string): Promise<AdminApiKey[]> {
+  return apiGet<AdminApiKey[]>(`/admin/users/${userId}/api-keys`);
 }
 
 // ── Template management ──────────────────────────────────
