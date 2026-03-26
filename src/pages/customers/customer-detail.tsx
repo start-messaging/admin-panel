@@ -28,6 +28,15 @@ import {
   History,
   Activity,
 } from 'lucide-react';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
 import { toast } from 'sonner';
 import {
   getUserDetail,
@@ -196,11 +205,11 @@ export function CustomerDetailPage() {
 
   const messages = messagesData?.data ?? [];
   const msgPagination = messagesData?.pagination;
-  const totalMsgPages = msgPagination ? Math.ceil(msgPagination.total / msgPagination.limit) : 0;
+  const totalMsgPages = msgPagination ? msgPagination.totalPages : 0;
 
   const transactions = transactionsData?.data ?? [];
   const txPagination = transactionsData?.pagination;
-  const totalTxPages = txPagination ? Math.ceil(txPagination.total / txPagination.limit) : 0;
+  const totalTxPages = txPagination ? txPagination.totalPages : 0;
 
   return (
     <div className="space-y-6">
@@ -472,6 +481,63 @@ export function CustomerDetailPage() {
               </p>
             </div>
           )}
+
+          {/* Message Trends Graph */}
+          {overview?.messagesTrend && overview.messagesTrend.length > 0 && (
+            <div className="rounded-xl border bg-card p-5 shadow-sm lg:col-span-2">
+              <h2 className="mb-4 flex items-center gap-2 font-semibold">
+                <Activity className="size-4 text-muted-foreground" />
+                Message Trends (Last 7 Days)
+              </h2>
+              <div className="h-[250px] w-full pr-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={overview.messagesTrend}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.1} />
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10 }}
+                      minTickGap={30}
+                      tickFormatter={(val) => new Date(val).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                    />
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        borderColor: 'hsl(var(--border))',
+                        fontSize: '12px',
+                        borderRadius: '8px'
+                      }}
+                      labelFormatter={(val) => new Date(val).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    />
+                    <Area
+                      type="monotone"
+                      name="Total Messages"
+                      dataKey="total"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorTotal)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -601,7 +667,7 @@ export function CustomerDetailPage() {
                 <PaginationFooter
                   page={msgPagination.page}
                   totalPages={totalMsgPages}
-                  totalItems={msgPagination.total}
+                  totalItems={msgPagination.totalItems}
                   onPageChange={setMessagesPage}
                 />
               )}
@@ -681,7 +747,7 @@ export function CustomerDetailPage() {
                 <PaginationFooter
                   page={txPagination.page}
                   totalPages={totalTxPages}
-                  totalItems={txPagination.total}
+                  totalItems={txPagination.totalItems}
                   onPageChange={setTransactionsPage}
                 />
               )}

@@ -26,6 +26,26 @@ export interface CustomerOverview {
     statusBreakdown: Record<string, number>;
   };
   apiKeyCount: number;
+  messagesTrend: {
+    date: string;
+    total: number;
+    delivered: number;
+    failed: number;
+  }[];
+}
+
+export interface DailyUsageUser {
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    businessName: string | null;
+  };
+  totalMessages: number;
+  deliveredCount: number;
+  failedCount: number;
+  totalSpent: number;
 }
 
 export interface WalletTransaction {

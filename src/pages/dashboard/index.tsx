@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
   UserCheck,
@@ -10,6 +11,7 @@ import {
   ArrowUpRight,
   TrendingUp,
   Activity,
+  CalendarDays,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -22,13 +24,21 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { getDashboardStats } from '@/apis/admin.api';
+import { getDashboardStats, getAdminDailyUsage } from '@/apis/admin.api';
 import { ROUTES } from '@/lib/constants';
 
 export function DashboardPage() {
+  const navigate = useNavigate();
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin', 'dashboard'],
     queryFn: getDashboardStats,
+  });
+
+  const { data: dailyUsage, isLoading: dailyUsageLoading } = useQuery({
+    queryKey: ['admin', 'dashboard-daily-usage', selectedDate],
+    queryFn: () => getAdminDailyUsage(selectedDate),
   });
 
   if (isLoading) {
@@ -240,6 +250,81 @@ export function DashboardPage() {
                 <span>+{((performance?.revenueToday ?? 0) / (overview?.totalRevenue ?? 1) * 100).toFixed(1)}%</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="rounded-xl border bg-card p-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">User Daily Usage Breakdown</h3>
+              <p className="text-sm text-muted-foreground">Detailed message consumption per user</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <CalendarDays className="size-4 text-muted-foreground" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-9 rounded-md border bg-background px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">Customer Details</th>
+                  <th className="px-4 py-3 font-medium text-right">Total Msgs</th>
+                  <th className="px-4 py-3 font-medium text-right">Delivered</th>
+                  <th className="px-4 py-3 font-medium text-right">Failed</th>
+                  <th className="px-4 py-3 font-medium text-right">Total Spent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailyUsageLoading ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      <Loader2 className="mx-auto size-5 animate-spin" />
+                    </td>
+                  </tr>
+                ) : !dailyUsage || dailyUsage.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      No usage data found for this date.
+                    </td>
+                  </tr>
+                ) : (
+                  dailyUsage.map((row) => (
+                    <tr 
+                      key={row.user.id} 
+                      className="border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/customers/${row.user.id}`)}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-foreground">
+                          {row.user.firstName} {row.user.lastName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {row.user.email}
+                        </div>
+                        {row.user.businessName && (
+                          <div className="mt-0.5 w-fit rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            {row.user.businessName}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium tabular-nums">{row.totalMessages.toLocaleString('en-IN')}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-emerald-600 font-medium">{row.deliveredCount.toLocaleString('en-IN')}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-red-600 font-medium">{row.failedCount.toLocaleString('en-IN')}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold">₹{row.totalSpent.toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

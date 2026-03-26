@@ -55,7 +55,7 @@ export function TemplatesPage() {
 
   const templates = data?.data ?? [];
   const pagination = data?.pagination;
-  const totalPages = pagination ? Math.ceil(pagination.total / pagination.limit) : 0;
+  const totalPages = pagination ? pagination.totalPages : 0;
 
   const tabs: { key: FilterTab; label: string }[] = [
     { key: 'all', label: 'All' },
@@ -70,7 +70,7 @@ export function TemplatesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Templates</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {pagination ? `${pagination.total} total templates` : 'Manage OTP message templates'}
+            {pagination ? `${pagination.totalItems} total templates` : 'Manage OTP message templates'}
           </p>
         </div>
         <Link to={ROUTES.TEMPLATE_CREATE}>
@@ -244,7 +244,7 @@ export function TemplatesPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({pagination?.total} total)
+            Page {page} of {totalPages} ({pagination?.totalItems} total)
           </p>
           <div className="flex gap-1">
             <Button
