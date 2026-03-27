@@ -44,24 +44,73 @@ const KYC_BADGE: Record<
 
 export function CustomersPage() {
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const limit = 20;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'users', page],
-    queryFn: () => getUsers({ page, limit }),
+    queryKey: ['admin', 'users', page, search, statusFilter],
+    queryFn: () =>
+      getUsers({
+        page,
+        limit,
+        search: search || undefined,
+        status: statusFilter || undefined,
+      }),
   });
 
   const users = data?.data ?? [];
   const pagination = data?.pagination;
-  const totalPages = pagination ? Math.ceil(pagination.total / pagination.limit) : 0;
+  const totalPages = pagination ? pagination.totalPages : 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Customers</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {pagination ? `${pagination.total} total users` : 'Manage all platform users'}
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Customers</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {pagination ? `${pagination.totalItems} total users` : 'Manage all platform users'}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="text"
+            placeholder="Search users..."
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-[250px]"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setSearch(searchInput);
+                setPage(1);
+              }
+            }}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-9 shrink-0"
+            onClick={() => {
+              setSearch(searchInput);
+              setPage(1);
+            }}
+          >
+            Search
+          </Button>
+          <select
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-[130px]"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
@@ -184,7 +233,7 @@ export function CustomersPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({pagination?.total} total)
+            Page {page} of {totalPages} ({pagination?.totalItems} total)
           </p>
           <div className="flex gap-1">
             <Button

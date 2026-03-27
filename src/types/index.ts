@@ -12,4 +12,5 @@ export type {
   CustomerOverview,
   WalletTransaction,
   AdminApiKey,
+  DailyUsageUser,
 } from './admin';

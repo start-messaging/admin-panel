@@ -10,6 +10,7 @@ import type {
   WalletTransaction,
   AdminApiKey,
   MessageStatus,
+  DailyUsageUser,
 } from '@/types';
 
 // ── Types ──────────────────────────────────────────────
@@ -41,7 +42,10 @@ export interface DashboardStats {
 export interface Pagination {
   page: number;
   limit: number;
-  total: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export interface PaginatedResponse<T> {
@@ -53,6 +57,7 @@ export interface KycListParams {
   page?: number;
   limit?: number;
   status?: KycStatus;
+  search?: string;
 }
 
 export interface ReviewKycPayload {
@@ -63,6 +68,8 @@ export interface ReviewKycPayload {
 export interface UserListParams {
   page?: number;
   limit?: number;
+  search?: string;
+  status?: string;
 }
 
 export interface UpdateUserStatusPayload {
@@ -78,6 +85,11 @@ export interface SmsWallet {
 
 export function getDashboardStats(): Promise<DashboardStats> {
   return apiGet<DashboardStats>('/admin/dashboard');
+}
+
+export function getAdminDailyUsage(date?: string): Promise<DailyUsageUser[]> {
+  const params = date ? { date } : undefined;
+  return apiGet<DailyUsageUser[]>('/admin/dashboard/daily-usage', { params });
 }
 
 export function getSmsWallet(): Promise<SmsWallet> {

@@ -42,30 +42,61 @@ const STATUS_BADGE: Record<string, { label: string; className: string; icon: typ
 
 export function KycReviewPage() {
   const [activeTab, setActiveTab] = useState<KycStatus | 'all'>('pending');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const limit = 15;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'kyc', activeTab, page],
+    queryKey: ['admin', 'kyc', activeTab, page, search],
     queryFn: () =>
       getKycList({
         page,
         limit,
+        search: search || undefined,
         ...(activeTab !== 'all' && { status: activeTab }),
       }),
   });
 
   const users = data?.data ?? [];
   const pagination = data?.pagination;
-  const totalPages = pagination ? Math.ceil(pagination.total / pagination.limit) : 0;
+  const totalPages = pagination ? pagination.totalPages : 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">KYC Reviews</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Review and manage customer KYC submissions
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">KYC Reviews</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Review and manage customer KYC submissions
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="text"
+            placeholder="Search KYC..."
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-[250px]"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setSearch(searchInput);
+                setPage(1);
+              }
+            }}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-9 shrink-0"
+            onClick={() => {
+              setSearch(searchInput);
+              setPage(1);
+            }}
+          >
+            Search
+          </Button>
+        </div>
       </div>
 
       {/* Status tabs */}
@@ -164,7 +195,7 @@ export function KycReviewPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({pagination?.total} total)
+            Page {page} of {totalPages} ({pagination?.totalItems} total)
           </p>
           <div className="flex gap-1">
             <Button
