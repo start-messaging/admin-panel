@@ -381,6 +381,9 @@ export function CustomersPage() {
             <table className="w-full min-w-max text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="w-px px-2 py-3 text-left font-medium text-muted-foreground">
+                  <span className="sr-only">Edit</span>
+                </th>
                 <th className="min-w-[200px] px-4 py-3 text-left font-medium text-muted-foreground">
                   User
                 </th>
@@ -390,17 +393,11 @@ export function CustomersPage() {
                 <th className="min-w-[88px] px-4 py-3 text-right font-medium text-muted-foreground">
                   Balance
                 </th>
-                <th className="min-w-[88px] px-4 py-3 text-left font-medium text-muted-foreground">
-                  Role
-                </th>
                 <th className="min-w-[100px] px-4 py-3 text-left font-medium text-muted-foreground">
                   KYC
                 </th>
                 <th className="min-w-[100px] px-4 py-3 text-left font-medium text-muted-foreground">
                   Status
-                </th>
-                <th className="min-w-[96px] px-4 py-3 text-left font-medium text-muted-foreground">
-                  Joined
                 </th>
                 <th className="min-w-[168px] px-4 py-3 text-left font-medium text-muted-foreground">
                   Last called
@@ -408,8 +405,11 @@ export function CustomersPage() {
                 <th className="min-w-[248px] px-4 py-3 text-left font-medium text-muted-foreground">
                   Notes
                 </th>
-                <th className="w-px whitespace-nowrap px-4 py-3 text-right font-medium text-muted-foreground">
-                  <span className="sr-only">Actions</span>
+                <th className="min-w-[88px] px-4 py-3 text-left font-medium text-muted-foreground">
+                  Role
+                </th>
+                <th className="min-w-[96px] px-4 py-3 text-left font-medium text-muted-foreground">
+                  Joined
                 </th>
               </tr>
             </thead>
@@ -423,6 +423,18 @@ export function CustomersPage() {
                     key={user.id}
                     className="border-b last:border-0 transition-colors hover:bg-muted/30"
                   >
+                    <td className="w-px px-2 py-3 align-middle">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                        aria-label={`Edit call tracking for ${user.firstName} ${user.lastName}`}
+                        onClick={() => setTrackingUser(user)}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                    </td>
                     <td className="min-w-[200px] px-4 py-3">
                       <Link
                         to={`/customers/${user.id}`}
@@ -447,18 +459,6 @@ export function CustomersPage() {
                     </td>
                     <td className="min-w-[88px] px-4 py-3 text-right font-medium tabular-nums">
                       {formatINR(user.walletBalance)}
-                    </td>
-                    <td className="min-w-[88px] px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                          user.role === 'admin'
-                            ? 'bg-violet-100 text-violet-700'
-                            : 'bg-blue-100 text-blue-700',
-                        )}
-                      >
-                        {user.role}
-                      </span>
                     </td>
                     <td className="min-w-[100px] px-4 py-3">
                       <span
@@ -489,13 +489,6 @@ export function CustomersPage() {
                         {user.isActive ? 'Active' : 'Suspended'}
                       </span>
                     </td>
-                    <td className="min-w-[96px] px-4 py-3 text-muted-foreground">
-                      {new Date(user.createdAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </td>
                     <td className="min-w-[168px] whitespace-nowrap px-4 py-3 text-muted-foreground">
                       {user.adminLastCalledAt
                         ? new Date(user.adminLastCalledAt).toLocaleString('en-IN', {
@@ -510,17 +503,24 @@ export function CustomersPage() {
                     <td className="min-w-[248px] px-4 py-3 align-top">
                       <CustomerNotesCell notes={user.adminCallNotes} />
                     </td>
-                    <td className="w-px whitespace-nowrap px-4 py-3 text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-1 text-muted-foreground"
-                        onClick={() => setTrackingUser(user)}
+                    <td className="min-w-[88px] px-4 py-3">
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize',
+                          user.role === 'admin'
+                            ? 'bg-violet-100 text-violet-700'
+                            : 'bg-blue-100 text-blue-700',
+                        )}
                       >
-                        <Pencil className="size-3.5" />
-                        <span className="sr-only sm:not-sr-only sm:inline">Edit</span>
-                      </Button>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="min-w-[96px] px-4 py-3 text-muted-foreground">
+                      {new Date(user.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
                     </td>
                   </tr>
                 );

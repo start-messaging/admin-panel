@@ -22,6 +22,10 @@ export interface DashboardStats {
     totalMessages: number;
     totalRevenue: number;
     pendingKycCount: number;
+    /** Sum of completed Razorpay wallet top-ups (INR) */
+    razorpayPaymentsTotal: number;
+    razorpayPaymentsToday: number;
+    razorpayPaymentsCount: number;
   };
   growth: {
     newUsersToday: number;

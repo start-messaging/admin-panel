@@ -6,6 +6,7 @@ import {
   UserCheck,
   MessageSquare,
   IndianRupee,
+  CreditCard,
   Clock,
   Loader2,
   ArrowUpRight,
@@ -87,6 +88,14 @@ export function DashboardPage() {
       color: 'text-amber-600',
       iconBg: 'bg-amber-100',
     },
+    {
+      label: 'Payments via Razorpay',
+      value: `₹${(overview?.razorpayPaymentsTotal ?? 0).toLocaleString('en-IN')}`,
+      description: `₹${(overview?.razorpayPaymentsToday ?? 0).toLocaleString('en-IN')} today · ${(overview?.razorpayPaymentsCount ?? 0).toLocaleString('en-IN')} completed`,
+      icon: CreditCard,
+      color: 'text-sky-600',
+      iconBg: 'bg-sky-100',
+    },
   ];
 
   return (
@@ -106,7 +115,7 @@ export function DashboardPage() {
       </div>
 
       {/* Analytics cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {cards.map(({ label, value, description, icon: Icon, color, iconBg }) => (
           <div key={label} className="rounded-xl border bg-card p-5">
             <div className="flex items-center justify-between">
