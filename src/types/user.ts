@@ -26,4 +26,10 @@ export interface User {
   lastLoginAt: string | null;
   lastLoginIp: string | null;
   createdAt: string;
+  /** Present on admin user list responses */
+  walletBalance?: number;
+  /** Admin-only: last outbound call (ISO); not returned on customer APIs */
+  adminLastCalledAt?: string | null;
+  /** Admin-only internal notes */
+  adminCallNotes?: string | null;
 }

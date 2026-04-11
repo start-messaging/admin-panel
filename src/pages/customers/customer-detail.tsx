@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Mail,
@@ -27,6 +26,8 @@ import {
   X,
   History,
   Activity,
+  PhoneCall,
+  type LucideIcon,
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -38,19 +39,20 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { toast } from 'sonner';
-import {
-  getUserDetail,
-  updateUserStatus,
-  getCustomerOverview,
-  getCustomerMessages,
-  getCustomerTransactions,
-  getCustomerApiKeys,
-} from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { isoToDatetimeLocalValue } from '@/lib/datetime';
 import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import type { KycStatus, MessageStatus } from '@/types';
+import {
+  useAdminUserDetail,
+  useAdminCustomerOverview,
+  useAdminCustomerMessages,
+  useAdminCustomerTransactions,
+  useAdminCustomerApiKeys,
+  useUpdateAdminUser,
+} from '@/hooks/admin';
+import type { KycStatus, MessageStatus, User } from '@/types';
 
 const KYC_CONFIG: Record<
   KycStatus,
@@ -86,15 +88,101 @@ function formatINR(amount: number | string) {
 
 type TabType = 'overview' | 'messages' | 'transactions' | 'api-keys';
 
+function CustomerCallTrackingCard({ userId, user }: { userId: string; user: User }) {
+  const [callNotesDraft, setCallNotesDraft] = useState(user.adminCallNotes ?? '');
+  const [lastCalledDraft, setLastCalledDraft] = useState(
+    isoToDatetimeLocalValue(user.adminLastCalledAt),
+  );
+  const updateCallTracking = useUpdateAdminUser();
+
+  return (
+    <div className="rounded-xl border bg-card p-5 shadow-sm lg:col-span-2">
+      <h2 className="mb-4 flex items-center gap-2 font-semibold">
+        <PhoneCall className="size-4 text-muted-foreground" />
+        Call tracking
+      </h2>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Visible only in the admin panel. Customers do not see these fields.
+      </p>
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            Last called
+          </label>
+          <input
+            type="datetime-local"
+            className="h-9 w-full max-w-xs rounded-md border bg-background px-3 text-sm"
+            value={lastCalledDraft}
+            onChange={(e) => setLastCalledDraft(e.target.value)}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setLastCalledDraft(isoToDatetimeLocalValue(new Date().toISOString()))}
+            >
+              Set to now
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setLastCalledDraft('')}>
+              Clear
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Notes</label>
+          <textarea
+            className="min-h-[100px] w-full rounded-md border bg-background px-3 py-2 text-sm"
+            placeholder="Call outcome, follow-up, etc."
+            value={callNotesDraft}
+            onChange={(e) => setCallNotesDraft(e.target.value)}
+          />
+        </div>
+        <Button
+          size="sm"
+          className="gap-2"
+          disabled={updateCallTracking.isPending}
+          onClick={() => {
+            updateCallTracking.mutate(
+              {
+                userId,
+                payload: {
+                  adminCallNotes: callNotesDraft.trim() === '' ? null : callNotesDraft,
+                  adminLastCalledAt:
+                    lastCalledDraft.trim() === '' ? null : new Date(lastCalledDraft).toISOString(),
+                },
+              },
+              {
+                onSuccess: (data) => {
+                  toast.success('Call tracking saved');
+                  setCallNotesDraft(data.adminCallNotes ?? '');
+                  setLastCalledDraft(isoToDatetimeLocalValue(data.adminLastCalledAt));
+                },
+                onError: (e) => toast.error(getApiErrorMessage(e)),
+              },
+            );
+          }}
+        >
+          {updateCallTracking.isPending ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Saving…
+            </>
+          ) : (
+            'Save call tracking'
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function CustomerDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
-  // Navigation tabs
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
-  // Message filters
   const [messagesPage, setMessagesPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'all' | MessageStatus>('all');
   const [phoneFilter, setPhoneFilter] = useState('');
@@ -102,68 +190,35 @@ export function CustomerDetailPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Transaction state
   const [transactionsPage, setTransactionsPage] = useState(1);
 
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['admin', 'user', userId],
-    queryFn: () => getUserDetail(userId!),
-    enabled: !!userId,
+  const { data: user, isLoading } = useAdminUserDetail(userId);
+
+  const { data: overview } = useAdminCustomerOverview(userId);
+
+  const { data: messagesData, isLoading: messagesLoading } = useAdminCustomerMessages({
+    userId,
+    enabled: activeTab === 'messages',
+    page: messagesPage,
+    statusFilter,
+    phoneFilter,
+    startDate,
+    endDate,
   });
 
-  const { data: overview } = useQuery({
-    queryKey: ['admin', 'user-overview', userId],
-    queryFn: () => getCustomerOverview(userId!),
-    enabled: !!userId,
-  });
-
-  const { data: messagesData, isLoading: messagesLoading } = useQuery({
-    queryKey: [
-      'admin',
-      'user-messages',
+  const { data: transactionsData, isLoading: transactionsLoading } =
+    useAdminCustomerTransactions({
       userId,
-      messagesPage,
-      statusFilter,
-      phoneFilter,
-      startDate,
-      endDate,
-    ],
-    queryFn: () =>
-      getCustomerMessages(userId!, {
-        page: messagesPage,
-        limit: 20,
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        phoneNumber: phoneFilter || undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-      }),
-    enabled: !!userId && activeTab === 'messages',
+      enabled: activeTab === 'transactions',
+      page: transactionsPage,
+    });
+
+  const { data: apiKeys, isLoading: apiKeysLoading } = useAdminCustomerApiKeys({
+    userId,
+    enabled: activeTab === 'api-keys',
   });
 
-  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
-    queryKey: ['admin', 'user-transactions', userId, transactionsPage],
-    queryFn: () => getCustomerTransactions(userId!, { page: transactionsPage, limit: 20 }),
-    enabled: !!userId && activeTab === 'transactions',
-  });
-
-  const { data: apiKeys, isLoading: apiKeysLoading } = useQuery({
-    queryKey: ['admin', 'user-api-keys', userId],
-    queryFn: () => getCustomerApiKeys(userId!),
-    enabled: !!userId && activeTab === 'api-keys',
-  });
-
-  const statusMutation = useMutation({
-    mutationFn: (isActive: boolean) => updateUserStatus(userId!, { isActive }),
-    onSuccess: (updatedUser) => {
-      toast.success(
-        updatedUser.isActive ? 'User activated successfully' : 'User suspended successfully',
-      );
-      queryClient.invalidateQueries({ queryKey: ['admin', 'user', userId] });
-    },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error));
-    },
-  });
+  const updateUserStatus = useUpdateAdminUser();
 
   const hasFilters = statusFilter !== 'all' || phoneFilter || startDate || endDate;
 
@@ -436,6 +491,8 @@ export function CustomerDetailPage() {
             </div>
           </div>
 
+          <CustomerCallTrackingCard key={user.id} userId={user.id} user={user} />
+
           {/* Actions */}
           <div className="rounded-xl border bg-card p-5 shadow-sm lg:col-span-2">
             <h2 className="mb-4 font-semibold">Management Actions</h2>
@@ -444,10 +501,25 @@ export function CustomerDetailPage() {
                 variant={user.isActive ? 'destructive' : 'default'}
                 size="sm"
                 className="gap-2"
-                disabled={statusMutation.isPending}
-                onClick={() => statusMutation.mutate(!user.isActive)}
+                disabled={updateUserStatus.isPending}
+                onClick={() => {
+                  if (!userId) return;
+                  updateUserStatus.mutate(
+                    { userId, payload: { isActive: !user.isActive } },
+                    {
+                      onSuccess: (data) => {
+                        toast.success(
+                          data.isActive
+                            ? 'User activated successfully'
+                            : 'User suspended successfully',
+                        );
+                      },
+                      onError: (e) => toast.error(getApiErrorMessage(e)),
+                    },
+                  );
+                }}
               >
-                {statusMutation.isPending ? (
+                {updateUserStatus.isPending ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : user.isActive ? (
                   <ToggleLeft className="size-4" />
@@ -631,7 +703,9 @@ export function CustomerDetailPage() {
                       <th className="px-4 py-2.5 font-semibold">Status</th>
                       <th className="px-4 py-2.5 font-semibold">Provider</th>
                       <th className="px-4 py-2.5 font-semibold text-right">Cost</th>
-                      <th className="px-4 py-2.5 font-semibold">Reason</th>
+                      <th className="min-w-[200px] px-4 py-2.5 font-semibold">
+                        Failure / status detail
+                      </th>
                       <th className="px-4 py-2.5 font-semibold">Sent At</th>
                     </tr>
                   </thead>
@@ -651,8 +725,12 @@ export function CustomerDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{msg.provider}</td>
                         <td className="px-4 py-3 text-right font-medium">{formatINR(msg.costAmount)}</td>
-                        <td className="max-w-[150px] truncate px-4 py-3 text-muted-foreground">
-                          {msg.failureReason ?? '-'}
+                        <td className="max-w-md px-4 py-3 align-top text-muted-foreground">
+                          <p className="whitespace-pre-wrap break-words text-[11px] leading-snug">
+                            {msg.failureReason ??
+                              msg.providerStatusDescription ??
+                              '—'}
+                          </p>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted-foreground">
                           {new Date(msg.createdAt).toLocaleDateString('en-IN')} {new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
@@ -831,7 +909,7 @@ function StatCard({
   label,
   value,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: string;
 }) {
@@ -853,7 +931,7 @@ function InfoRow({
   isLink,
   valueClassName,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: string;
   isLink?: boolean;

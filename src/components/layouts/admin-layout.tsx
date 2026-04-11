@@ -142,8 +142,8 @@ export function AdminLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex min-h-0 flex-1 flex-col">
+      {/* Main content — min-w-0 so wide tables scroll inside the viewport instead of clipping (flex default min-width: auto) */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* Mobile header */}
         <header className="flex h-14 items-center border-b px-4 lg:hidden">
           <button onClick={() => setSidebarOpen(true)}>
@@ -157,8 +157,8 @@ export function AdminLayout() {
           )}
         </header>
 
-        <main className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
-          <div className="mx-auto max-w-6xl">
+        <main className="min-h-0 min-w-0 flex-1 overflow-auto p-4 sm:p-6">
+          <div className="mx-auto w-full min-w-0 max-w-6xl">
             <Outlet />
           </div>
         </main>

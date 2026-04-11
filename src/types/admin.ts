@@ -11,6 +11,8 @@ export interface AdminMessage {
   statusHistory: { status: string; timestamp: string }[];
   costAmount: number;
   failureReason: string | null;
+  /** Set when DLR/webhook reports failure details separately */
+  providerStatusDescription: string | null;
   sentAt: string | null;
   deliveredAt: string | null;
   otpRequestId: string | null;
