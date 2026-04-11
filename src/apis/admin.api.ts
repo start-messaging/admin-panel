@@ -22,6 +22,10 @@ export interface DashboardStats {
     totalMessages: number;
     totalRevenue: number;
     pendingKycCount: number;
+    /** Sum of completed Razorpay wallet top-ups (INR) */
+    razorpayPaymentsTotal: number;
+    razorpayPaymentsToday: number;
+    razorpayPaymentsCount: number;
   };
   growth: {
     newUsersToday: number;
@@ -65,15 +69,30 @@ export interface ReviewKycPayload {
   rejectionReason?: string;
 }
 
+export type UserListSortBy =
+  | 'created_at'
+  | 'name'
+  | 'email'
+  | 'last_called'
+  | 'last_login'
+  | 'kyc_status'
+  | 'role';
+
 export interface UserListParams {
   page?: number;
   limit?: number;
   search?: string;
+  /** Account: active | suspended */
   status?: string;
+  kycStatus?: KycStatus;
+  sortBy?: UserListSortBy;
+  sortOrder?: 'asc' | 'desc';
 }
 
-export interface UpdateUserStatusPayload {
-  isActive: boolean;
+export interface AdminUpdateUserPayload {
+  isActive?: boolean;
+  adminLastCalledAt?: string | null;
+  adminCallNotes?: string | null;
 }
 
 export interface SmsWallet {
@@ -104,7 +123,10 @@ export function getUserDetail(userId: string): Promise<User> {
   return apiGet<User>(`/admin/kyc/${userId}`);
 }
 
-export function updateUserStatus(userId: string, payload: UpdateUserStatusPayload): Promise<User> {
+export function updateAdminUser(
+  userId: string,
+  payload: AdminUpdateUserPayload,
+): Promise<User> {
   return apiPatch<User>(`/admin/users/${userId}`, payload);
 }
 
