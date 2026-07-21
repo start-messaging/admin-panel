@@ -18,7 +18,14 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
-type FilterTab = 'all' | 'draft' | 'published';
+type FilterTab = 'all' | 'pending_review' | 'approved' | 'rejected' | 'draft';
+
+const TEMPLATE_STATUS_TONE: Record<string, string> = {
+  draft: 'bg-slate-100 text-slate-700',
+  pending_review: 'bg-amber-100 text-amber-700',
+  approved: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
+};
 
 export function TemplatesPage() {
   const navigate = useNavigate();
@@ -43,8 +50,7 @@ export function TemplatesPage() {
 
   function buildParams(): TemplateListParams {
     const params: TemplateListParams = { page, limit };
-    if (tab === 'draft') params.status = 'draft';
-    else if (tab === 'published') params.status = 'published';
+    if (tab !== 'all') params.status = tab;
     return params;
   }
 
@@ -59,8 +65,10 @@ export function TemplatesPage() {
 
   const tabs: { key: FilterTab; label: string }[] = [
     { key: 'all', label: 'All' },
+    { key: 'pending_review', label: 'Pending review' },
+    { key: 'approved', label: 'Approved' },
+    { key: 'rejected', label: 'Rejected' },
     { key: 'draft', label: 'Draft' },
-    { key: 'published', label: 'Published' },
   ];
 
   return (
@@ -70,7 +78,9 @@ export function TemplatesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Templates</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {pagination ? `${pagination.totalItems} total templates` : 'Manage OTP message templates'}
+            {pagination
+              ? `${pagination.totalItems} total templates`
+              : 'Manage OTP message templates'}
           </p>
         </div>
         <Link to={ROUTES.TEMPLATE_CREATE}>
@@ -117,7 +127,9 @@ export function TemplatesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Name
+                </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">
                   Channel
                 </th>
@@ -160,20 +172,17 @@ export function TemplatesPage() {
                   <td className="hidden px-4 py-3 md:table-cell">
                     <span
                       className={cn(
-                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                        template.status === 'published'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-amber-100 text-amber-700',
+                        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                        TEMPLATE_STATUS_TONE[template.status],
                       )}
                     >
-                      <span
-                        className={cn(
-                          'size-1.5 rounded-full',
-                          template.status === 'published' ? 'bg-green-500' : 'bg-amber-500',
-                        )}
-                      />
-                      {template.status === 'published' ? 'Published' : 'Draft'}
+                      {template.status.replace('_', ' ')}
                     </span>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {template.userId
+                        ? (template.user?.email ?? 'customer')
+                        : 'system'}
+                    </p>
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
                     {template.language ?? '—'}
@@ -198,10 +207,13 @@ export function TemplatesPage() {
                         variant="ghost"
                         size="icon-sm"
                         className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                        disabled={deleteMutation.isPending && deletingId === template.id}
+                        disabled={
+                          deleteMutation.isPending && deletingId === template.id
+                        }
                         onClick={() => setDeletingId(template.id)}
                       >
-                        {deleteMutation.isPending && deletingId === template.id ? (
+                        {deleteMutation.isPending &&
+                        deletingId === template.id ? (
                           <Loader2 className="size-3.5 animate-spin" />
                         ) : (
                           <Trash2 className="size-3.5" />
@@ -222,7 +234,9 @@ export function TemplatesPage() {
           <p className="text-sm font-medium text-red-700">
             Are you sure you want to delete this template?
           </p>
-          <p className="mt-1 text-sm text-red-600">This action cannot be undone.</p>
+          <p className="mt-1 text-sm text-red-600">
+            This action cannot be undone.
+          </p>
           <div className="mt-3 flex gap-2">
             <Button
               variant="destructive"
@@ -230,10 +244,16 @@ export function TemplatesPage() {
               disabled={deleteMutation.isPending}
               onClick={() => deleteMutation.mutate(deletingId)}
             >
-              {deleteMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+              {deleteMutation.isPending && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
               Yes, delete
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setDeletingId(null)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeletingId(null)}
+            >
               Cancel
             </Button>
           </div>

@@ -1,22 +1,14 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  ArrowLeft,
-  Edit2,
-  Eye,
-  Loader2,
-  Save,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, Edit2, Eye, Loader2, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getTemplateDetail,
   updateTemplate,
   deleteTemplate,
-  publishTemplate,
-  unpublishTemplate,
+  approveTemplate,
+  rejectTemplate,
 } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -42,7 +34,10 @@ function highlightPlaceholders(body: string) {
   const parts = body.split(/(\{\{[^}]+\}\})/g);
   return parts.map((part, i) =>
     /^\{\{.+\}\}$/.test(part) ? (
-      <span key={i} className="rounded bg-violet-100 px-1 font-mono text-violet-700">
+      <span
+        key={i}
+        className="rounded bg-violet-100 px-1 font-mono text-violet-700"
+      >
         {part}
       </span>
     ) : (
@@ -63,6 +58,7 @@ export function TemplateDetailPage() {
   const [editTwoFactorTemplate, setEditTwoFactorTemplate] = useState('');
   const [editFast2SmsDltId, setEditFast2SmsDltId] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   const { data: template, isLoading } = useQuery({
     queryKey: ['admin', 'template', id],
@@ -76,7 +72,8 @@ export function TemplateDetailPage() {
   };
 
   const updateMutation = useMutation({
-    mutationFn: (data: Parameters<typeof updateTemplate>[1]) => updateTemplate(id!, data),
+    mutationFn: (data: Parameters<typeof updateTemplate>[1]) =>
+      updateTemplate(id!, data),
     onSuccess: () => {
       toast.success('Template updated');
       setEditing(false);
@@ -87,10 +84,10 @@ export function TemplateDetailPage() {
     },
   });
 
-  const publishMutation = useMutation({
-    mutationFn: () => publishTemplate(id!),
+  const approveMutation = useMutation({
+    mutationFn: () => approveTemplate(id!),
     onSuccess: () => {
-      toast.success('Template published');
+      toast.success('Template approved');
       invalidateTemplate();
     },
     onError: (error) => {
@@ -98,10 +95,11 @@ export function TemplateDetailPage() {
     },
   });
 
-  const unpublishMutation = useMutation({
-    mutationFn: () => unpublishTemplate(id!),
+  const rejectMutation = useMutation({
+    mutationFn: (reason: string) => rejectTemplate(id!, reason),
     onSuccess: () => {
-      toast.success('Template unpublished');
+      toast.success('Template rejected');
+      setRejectReason('');
       invalidateTemplate();
     },
     onError: (error) => {
@@ -186,7 +184,11 @@ export function TemplateDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
-        <Button variant="ghost" size="icon-sm" onClick={() => navigate(ROUTES.TEMPLATES)}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => navigate(ROUTES.TEMPLATES)}
+        >
           <ArrowLeft className="size-4" />
         </Button>
         <div className="min-w-0 flex-1">
@@ -194,51 +196,68 @@ export function TemplateDetailPage() {
             <h1 className="text-xl font-bold">{template.name}</h1>
             <span
               className={cn(
-                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                template.status === 'published'
+                'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                template.status === 'approved'
                   ? 'bg-green-100 text-green-700'
-                  : 'bg-amber-100 text-amber-700',
+                  : template.status === 'rejected'
+                    ? 'bg-red-100 text-red-700'
+                    : template.status === 'pending_review'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-slate-100 text-slate-700',
               )}
             >
-              <span
-                className={cn(
-                  'size-1.5 rounded-full',
-                  template.status === 'published' ? 'bg-green-500' : 'bg-amber-500',
-                )}
-              />
-              {template.status === 'published' ? 'Published' : 'Draft'}
+              {template.status.replace('_', ' ')}
             </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {template.channel?.displayName} &middot; {template.language ?? '—'} &middot; Created{' '}
+            {template.userId
+              ? (template.user?.email ?? 'customer')
+              : 'system template'}{' '}
+            &middot; {template.channel?.displayName} &middot;{' '}
+            {template.language ?? '—'} &middot; Created{' '}
             {new Date(template.createdAt).toLocaleDateString('en-IN', {
               day: 'numeric',
               month: 'long',
               year: 'numeric',
             })}
           </p>
+          {template.status === 'rejected' && template.rejectionReason && (
+            <p className="mt-1 text-sm text-red-600">
+              Rejected: {template.rejectionReason}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 gap-2">
-          {!editing && template.status === 'draft' && (
+          {!editing && template.status !== 'approved' && (
             <Button
               size="sm"
-              disabled={publishMutation.isPending}
-              onClick={() => publishMutation.mutate()}
+              disabled={approveMutation.isPending}
+              onClick={() => approveMutation.mutate()}
               className="bg-green-600 hover:bg-green-700"
             >
-              {publishMutation.isPending && <Loader2 className="size-4 animate-spin" />}
-              Publish
+              {approveMutation.isPending && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              Approve
             </Button>
           )}
-          {!editing && template.status === 'published' && (
+          {!editing && template.userId && template.status !== 'rejected' && (
             <Button
               variant="outline"
               size="sm"
-              disabled={unpublishMutation.isPending}
-              onClick={() => unpublishMutation.mutate()}
+              disabled={rejectMutation.isPending}
+              onClick={() => {
+                const reason =
+                  rejectReason.trim() ||
+                  window.prompt('Reason for rejection?') ||
+                  '';
+                if (reason) rejectMutation.mutate(reason);
+              }}
             >
-              {unpublishMutation.isPending && <Loader2 className="size-4 animate-spin" />}
-              Unpublish
+              {rejectMutation.isPending && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              Reject
             </Button>
           )}
           {!editing && (
@@ -271,7 +290,9 @@ export function TemplateDetailPage() {
           <p className="text-sm font-medium text-red-700">
             Are you sure you want to delete this template?
           </p>
-          <p className="mt-1 text-sm text-red-600">This action cannot be undone.</p>
+          <p className="mt-1 text-sm text-red-600">
+            This action cannot be undone.
+          </p>
           <div className="mt-3 flex gap-2">
             <Button
               variant="destructive"
@@ -279,10 +300,16 @@ export function TemplateDetailPage() {
               disabled={deleteMutation.isPending}
               onClick={() => deleteMutation.mutate()}
             >
-              {deleteMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+              {deleteMutation.isPending && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
               Yes, delete
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmDelete(false)}
+            >
               Cancel
             </Button>
           </div>
@@ -355,7 +382,9 @@ export function TemplateDetailPage() {
                       </button>
                     ))}
                   </div>
-                  <span className="text-xs text-muted-foreground">{editBody.length}/500</span>
+                  <span className="text-xs text-muted-foreground">
+                    {editBody.length}/500
+                  </span>
                 </div>
               </div>
 
@@ -410,7 +439,9 @@ export function TemplateDetailPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Channel</p>
-                  <p className="font-medium">{template.channel?.displayName ?? '—'}</p>
+                  <p className="font-medium">
+                    {template.channel?.displayName ?? '—'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Language</p>
@@ -434,15 +465,25 @@ export function TemplateDetailPage() {
 
               {/* Display Metadata */}
               <div className="rounded-lg border bg-muted/30 p-4">
-                <h3 className="text-xs font-bold uppercase text-muted-foreground">Provider Settings</h3>
+                <h3 className="text-xs font-bold uppercase text-muted-foreground">
+                  Provider Settings
+                </h3>
                 <div className="mt-3 grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">2Factor Name</p>
-                    <p className="mt-0.5 text-sm font-semibold">{(template.metadata?.['2factor'] as string) || '—'}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      2Factor Name
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold">
+                      {(template.metadata?.['2factor'] as string) || '—'}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Fast2SMS DLT ID</p>
-                    <p className="mt-0.5 text-sm font-semibold">{(template.metadata?.fast2sms as string) || '—'}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      Fast2SMS DLT ID
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold">
+                      {(template.metadata?.fast2sms as string) || '—'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -457,15 +498,22 @@ export function TemplateDetailPage() {
             Preview
           </h2>
           <div className="rounded-lg border bg-muted/30 p-4">
-            <p className="text-sm font-medium">{editing ? editName || template.name : template.name}</p>
+            <p className="text-sm font-medium">
+              {editing ? editName || template.name : template.name}
+            </p>
             <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
               {renderPreview(editing ? editBody : template.body)}
             </p>
           </div>
           <div className="mt-4 space-y-1">
-            <h3 className="text-xs font-semibold text-muted-foreground">Sample Values</h3>
+            <h3 className="text-xs font-semibold text-muted-foreground">
+              Sample Values
+            </h3>
             {Object.entries(SAMPLE_VALUES).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between text-xs">
+              <div
+                key={key}
+                className="flex items-center justify-between text-xs"
+              >
                 <span className="font-mono text-muted-foreground">{key}</span>
                 <span>{value}</span>
               </div>

@@ -12,4 +12,5 @@ export const ROUTES = {
   TEMPLATES: '/templates',
   TEMPLATE_CREATE: '/templates/create',
   TEMPLATE_DETAIL: '/templates/:id',
+  PAYOUTS: '/payouts',
 } as const;

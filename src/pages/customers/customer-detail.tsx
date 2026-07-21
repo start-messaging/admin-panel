@@ -83,7 +83,7 @@ const TRANSACTION_BADGE: Record<string, string> = {
 };
 
 function formatINR(amount: number | string) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(amount));
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(amount) / 1_000_000);
 }
 
 type TabType = 'overview' | 'messages' | 'transactions' | 'api-keys';

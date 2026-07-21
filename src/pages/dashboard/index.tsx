@@ -1,3 +1,4 @@
+import { formatMicros } from '@/lib/money';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -82,16 +83,16 @@ export function DashboardPage() {
     },
     {
       label: 'Platform Revenue',
-      value: `₹${(overview?.totalRevenue ?? 0).toLocaleString('en-IN')}`,
-      description: `₹${(performance?.revenueToday ?? 0).toLocaleString('en-IN')} today`,
+      value: formatMicros(overview?.totalRevenue ?? 0),
+      description: `${formatMicros(performance?.revenueToday ?? 0)} today`,
       icon: IndianRupee,
       color: 'text-amber-600',
       iconBg: 'bg-amber-100',
     },
     {
       label: 'Payments via Razorpay',
-      value: `₹${(overview?.razorpayPaymentsTotal ?? 0).toLocaleString('en-IN')}`,
-      description: `₹${(overview?.razorpayPaymentsToday ?? 0).toLocaleString('en-IN')} today · ${(overview?.razorpayPaymentsCount ?? 0).toLocaleString('en-IN')} completed`,
+      value: formatMicros(overview?.razorpayPaymentsTotal ?? 0),
+      description: `${formatMicros(overview?.razorpayPaymentsToday ?? 0)} today · ${(overview?.razorpayPaymentsCount ?? 0).toLocaleString('en-IN')} completed`,
       icon: CreditCard,
       color: 'text-sky-600',
       iconBg: 'bg-sky-100',
@@ -328,7 +329,7 @@ export function DashboardPage() {
                       <td className="px-4 py-3 text-right font-medium tabular-nums">{row.totalMessages.toLocaleString('en-IN')}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-emerald-600 font-medium">{row.deliveredCount.toLocaleString('en-IN')}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-red-600 font-medium">{row.failedCount.toLocaleString('en-IN')}</td>
-                      <td className="px-4 py-3 text-right tabular-nums font-semibold">₹{row.totalSpent.toLocaleString('en-IN')}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold">{formatMicros(row.totalSpent)}</td>
                     </tr>
                   ))
                 )}
