@@ -123,7 +123,12 @@ export function PayoutsPage() {
                 return (
                   <tr key={p.id}>
                     <td className="px-4 py-3">
-                      {p.partnerEmail ?? p.partnerUserId}
+                      {p.partnerName ?? p.partnerEmail ?? p.partnerId}
+                      {p.partnerName && p.partnerEmail && (
+                        <span className="block text-xs text-muted-foreground">
+                          {p.partnerEmail}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 font-medium">
                       {formatMicros(p.amountMicros)}

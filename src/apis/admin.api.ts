@@ -272,8 +272,9 @@ export function deleteTemplate(id: string): Promise<{ deleted: boolean }> {
 
 export interface AdminPartner {
   id: string;
-  userId: string;
-  email: string | null;
+  partnerId: string;
+  email: string;
+  fullName: string;
   referralCode: string;
   status: 'active' | 'suspended';
   commissionPercent: number;
@@ -287,8 +288,9 @@ export type PayoutStatus = 'requested' | 'paid' | 'rejected';
 
 export interface AdminPayout {
   id: string;
-  partnerUserId: string;
+  partnerId: string;
   partnerEmail: string | null;
+  partnerName: string | null;
   amountMicros: number;
   currency: string;
   status: PayoutStatus;
