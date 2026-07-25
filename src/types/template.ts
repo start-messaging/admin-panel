@@ -1,4 +1,8 @@
-export type TemplateStatus = 'draft' | 'published';
+export type TemplateStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'approved'
+  | 'rejected';
 
 export interface Channel {
   id: string;
@@ -8,8 +12,18 @@ export interface Channel {
   createdAt: string;
 }
 
+export interface TemplateOwner {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
+
 export interface OtpTemplate {
   id: string;
+  /** null = shared SYSTEM template (admin-authored). */
+  userId: string | null;
+  user?: TemplateOwner | null;
   name: string;
   body: string;
   channelId: string;
@@ -17,6 +31,10 @@ export interface OtpTemplate {
   status: TemplateStatus;
   language: string | null;
   metadata: Record<string, unknown> | null;
+  rejectionReason: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
   createdAt: string;
   updatedAt: string;
 }

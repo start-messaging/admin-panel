@@ -11,6 +11,7 @@ import {
   X,
   MessageSquare,
   Wallet,
+  Banknote,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getSmsWallet } from '@/apis/admin.api';
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { to: ROUTES.CUSTOMERS, label: 'Customers', icon: Users },
   { to: ROUTES.KYC_REVIEW, label: 'KYC Reviews', icon: FileCheck },
   { to: ROUTES.TEMPLATES, label: 'Templates', icon: FileText },
+  { to: ROUTES.PAYOUTS, label: 'Payouts', icon: Banknote },
 ] as const;
 
 export function AdminLayout() {
@@ -123,7 +125,9 @@ export function AdminLayout() {
               <p className="truncate text-sm font-medium">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="truncate text-xs text-sidebar-foreground/60">{user?.email}</p>
+              <p className="truncate text-xs text-sidebar-foreground/60">
+                {user?.email}
+              </p>
             </div>
           </div>
           <Button

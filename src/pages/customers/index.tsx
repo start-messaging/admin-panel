@@ -111,7 +111,7 @@ function formatINR(amount: number | undefined) {
     style: 'currency',
     currency: 'INR',
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(amount / 1_000_000);
 }
 
 function CallTrackingEditModal({

@@ -12,6 +12,7 @@ import { KycDetailPage } from '@/pages/kyc-review/kyc-detail';
 import { TemplatesPage } from '@/pages/templates';
 import { TemplateCreatePage } from '@/pages/templates/template-create';
 import { TemplateDetailPage } from '@/pages/templates/template-detail';
+import { PayoutsPage } from '@/pages/payouts';
 import { ROUTES } from '@/lib/constants';
 
 export default function App() {
@@ -24,18 +25,27 @@ export default function App() {
         </Route>
       </Route>
 
-
       {/* Protected — admin only */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
           <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
           <Route path={ROUTES.CUSTOMERS} element={<CustomersPage />} />
-          <Route path={ROUTES.CUSTOMER_DETAIL} element={<CustomerDetailPage />} />
+          <Route
+            path={ROUTES.CUSTOMER_DETAIL}
+            element={<CustomerDetailPage />}
+          />
           <Route path={ROUTES.KYC_REVIEW} element={<KycReviewPage />} />
           <Route path={ROUTES.KYC_DETAIL} element={<KycDetailPage />} />
           <Route path={ROUTES.TEMPLATES} element={<TemplatesPage />} />
-          <Route path={ROUTES.TEMPLATE_CREATE} element={<TemplateCreatePage />} />
-          <Route path={ROUTES.TEMPLATE_DETAIL} element={<TemplateDetailPage />} />
+          <Route
+            path={ROUTES.TEMPLATE_CREATE}
+            element={<TemplateCreatePage />}
+          />
+          <Route
+            path={ROUTES.TEMPLATE_DETAIL}
+            element={<TemplateDetailPage />}
+          />
+          <Route path={ROUTES.PAYOUTS} element={<PayoutsPage />} />
         </Route>
       </Route>
 

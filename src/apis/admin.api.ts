@@ -38,7 +38,12 @@ export interface DashboardStats {
     failedMessages: number;
   };
   trends: {
-    messages: { date: string; total: number; delivered: number; failed: number }[];
+    messages: {
+      date: string;
+      total: number;
+      delivered: number;
+      failed: number;
+    }[];
     revenue: { date: string; revenue: number }[];
   };
 }
@@ -115,7 +120,9 @@ export function getSmsWallet(): Promise<SmsWallet> {
   return apiGet<SmsWallet>('/admin/sms-wallet');
 }
 
-export function getUsers(params?: UserListParams): Promise<PaginatedResponse<User>> {
+export function getUsers(
+  params?: UserListParams,
+): Promise<PaginatedResponse<User>> {
   return apiGet<PaginatedResponse<User>>('/admin/users', { params });
 }
 
@@ -130,7 +137,9 @@ export function updateAdminUser(
   return apiPatch<User>(`/admin/users/${userId}`, payload);
 }
 
-export function getKycList(params?: KycListParams): Promise<PaginatedResponse<User>> {
+export function getKycList(
+  params?: KycListParams,
+): Promise<PaginatedResponse<User>> {
   return apiGet<PaginatedResponse<User>>('/admin/kyc', { params });
 }
 
@@ -138,7 +147,10 @@ export function getKycDetail(userId: string): Promise<User> {
   return apiGet<User>(`/admin/kyc/${userId}`);
 }
 
-export function reviewKyc(userId: string, payload: ReviewKycPayload): Promise<User> {
+export function reviewKyc(
+  userId: string,
+  payload: ReviewKycPayload,
+): Promise<User> {
   return apiPatch<User>(`/admin/kyc/${userId}`, payload);
 }
 
@@ -161,16 +173,22 @@ export function getCustomerMessages(
   userId: string,
   params?: CustomerMessageParams,
 ): Promise<PaginatedResponse<AdminMessage>> {
-  return apiGet<PaginatedResponse<AdminMessage>>(`/admin/users/${userId}/messages`, { params });
+  return apiGet<PaginatedResponse<AdminMessage>>(
+    `/admin/users/${userId}/messages`,
+    { params },
+  );
 }
 
 export function getCustomerTransactions(
   userId: string,
   params?: { page?: number; limit?: number },
 ): Promise<PaginatedResponse<WalletTransaction>> {
-  return apiGet<PaginatedResponse<WalletTransaction>>(`/admin/users/${userId}/transactions`, {
-    params,
-  });
+  return apiGet<PaginatedResponse<WalletTransaction>>(
+    `/admin/users/${userId}/transactions`,
+    {
+      params,
+    },
+  );
 }
 
 export function getCustomerApiKeys(userId: string): Promise<AdminApiKey[]> {
@@ -184,6 +202,7 @@ export interface TemplateListParams {
   limit?: number;
   channelId?: string;
   status?: TemplateStatus;
+  userId?: string;
   search?: string;
 }
 
@@ -206,7 +225,9 @@ export function getChannels(): Promise<Channel[]> {
   return apiGet<Channel[]>('/admin/channels');
 }
 
-export function getTemplates(params?: TemplateListParams): Promise<PaginatedResponse<OtpTemplate>> {
+export function getTemplates(
+  params?: TemplateListParams,
+): Promise<PaginatedResponse<OtpTemplate>> {
   return apiGet<PaginatedResponse<OtpTemplate>>('/admin/templates', { params });
 }
 
@@ -214,22 +235,102 @@ export function getTemplateDetail(id: string): Promise<OtpTemplate> {
   return apiGet<OtpTemplate>(`/admin/templates/${id}`);
 }
 
-export function createTemplate(payload: CreateTemplatePayload): Promise<OtpTemplate> {
+export function createTemplate(
+  payload: CreateTemplatePayload,
+): Promise<OtpTemplate> {
   return apiPost<OtpTemplate>('/admin/templates', payload);
 }
 
-export function updateTemplate(id: string, payload: UpdateTemplatePayload): Promise<OtpTemplate> {
+export function updateTemplate(
+  id: string,
+  payload: UpdateTemplatePayload,
+): Promise<OtpTemplate> {
   return apiPatch<OtpTemplate>(`/admin/templates/${id}`, payload);
 }
 
-export function publishTemplate(id: string): Promise<OtpTemplate> {
-  return apiPatch<OtpTemplate>(`/admin/templates/${id}/publish`);
+export function approveTemplate(
+  id: string,
+  metadata?: Record<string, unknown>,
+): Promise<OtpTemplate> {
+  return apiPatch<OtpTemplate>(`/admin/templates/${id}/approve`, { metadata });
 }
 
-export function unpublishTemplate(id: string): Promise<OtpTemplate> {
-  return apiPatch<OtpTemplate>(`/admin/templates/${id}/unpublish`);
+export function rejectTemplate(
+  id: string,
+  rejectionReason: string,
+): Promise<OtpTemplate> {
+  return apiPatch<OtpTemplate>(`/admin/templates/${id}/reject`, {
+    rejectionReason,
+  });
 }
 
 export function deleteTemplate(id: string): Promise<{ deleted: boolean }> {
   return apiDelete<{ deleted: boolean }>(`/admin/templates/${id}`);
+}
+
+// ── Affiliate / payouts ──────────────────────────────────
+
+export interface AdminPartner {
+  id: string;
+  partnerId: string;
+  email: string;
+  fullName: string;
+  referralCode: string;
+  status: 'active' | 'suspended';
+  commissionPercent: number;
+  earningsBalanceMicros: number;
+  totalEarnedMicros: number;
+  paidUsersCount: number;
+  createdAt: string;
+}
+
+export type PayoutStatus = 'requested' | 'paid' | 'rejected';
+
+export interface AdminPayout {
+  id: string;
+  partnerId: string;
+  partnerEmail: string | null;
+  partnerName: string | null;
+  amountMicros: number;
+  currency: string;
+  status: PayoutStatus;
+  windowMonth: string;
+  payoutRef: string | null;
+  rejectionReason: string | null;
+  payoutDetails: Record<string, unknown> | null;
+  processedAt: string | null;
+  createdAt: string;
+}
+
+export function getPartners(
+  page = 1,
+  limit = 20,
+): Promise<PaginatedResponse<AdminPartner>> {
+  return apiGet<PaginatedResponse<AdminPartner>>('/admin/partners', {
+    params: { page, limit },
+  });
+}
+
+export function getPayouts(params?: {
+  page?: number;
+  limit?: number;
+  status?: PayoutStatus;
+}): Promise<PaginatedResponse<AdminPayout>> {
+  return apiGet<PaginatedResponse<AdminPayout>>('/admin/payouts', { params });
+}
+
+export function approvePayout(
+  id: string,
+  payoutRef?: string,
+): Promise<AdminPayout> {
+  return apiPatch<AdminPayout>(`/admin/payouts/${id}/approve`, { payoutRef });
+}
+
+export function rejectPayout(
+  id: string,
+  rejectionReason: string,
+): Promise<AdminPayout> {
+  return apiPatch<AdminPayout>(`/admin/payouts/${id}/reject`, {
+    rejectionReason,
+  });
 }
