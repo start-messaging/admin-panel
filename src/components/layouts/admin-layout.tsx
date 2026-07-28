@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import {
   LogOut,
   LayoutDashboard,
@@ -10,10 +9,8 @@ import {
   Menu,
   X,
   MessageSquare,
-  Wallet,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { getSmsWallet } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -28,16 +25,6 @@ const NAV_ITEMS = [
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const { data: smsWallet } = useQuery({
-    queryKey: ['admin', 'sms-wallet'],
-    queryFn: getSmsWallet,
-    refetchInterval: 5 * 60 * 1000,
-  });
-
-  const formattedBalance = smsWallet
-    ? `₹${Number(smsWallet.balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : '—';
 
   return (
     <div className="flex h-dvh overflow-hidden">
@@ -67,26 +54,6 @@ export function AdminLayout() {
           <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="size-5" />
           </button>
-        </div>
-
-        {/* SMS Wallet balance */}
-        <div className="border-b border-sidebar-border px-3 py-3">
-          <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/60 px-3 py-2.5">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-100">
-              <Wallet className="size-4 text-emerald-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/50">
-                SMS Balance
-              </p>
-              <p className="text-sm font-bold">{formattedBalance}</p>
-            </div>
-            {smsWallet && (
-              <span className="text-[10px] text-sidebar-foreground/50">
-                {smsWallet.smsCount} left
-              </span>
-            )}
-          </div>
         </div>
 
         {/* Navigation */}
@@ -150,11 +117,6 @@ export function AdminLayout() {
             <Menu className="size-5" />
           </button>
           <span className="ml-3 text-sm font-semibold">StartMessaging</span>
-          {smsWallet && (
-            <span className="ml-auto text-sm font-semibold text-emerald-600">
-              {formattedBalance}
-            </span>
-          )}
         </header>
 
         <main className="min-h-0 min-w-0 flex-1 overflow-auto p-4 sm:p-6">

@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   Users,
   CheckCircle2,
@@ -10,6 +8,7 @@ import {
   Clock,
   Shield,
   Pencil,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -21,8 +20,13 @@ import {
 import { getApiErrorMessage } from '@/lib/api-error';
 import { isoToDatetimeLocalValue } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
+import { Pagination } from '@/components/ui/pagination';
 import type { UserListSortBy } from '@/apis/admin.api';
 import { useAdminUsersList, useUpdateAdminUser } from '@/hooks/admin';
+import {
+  ACCOUNT_STATUS_OPTIONS,
+  KYC_STATUS_OPTIONS,
+} from '@/hooks/admin/useAdminUsersList';
 import type { KycStatus, User } from '@/types';
 
 const USER_LIST_SORT_KEYS: UserListSortBy[] = [
@@ -241,28 +245,32 @@ const KYC_BADGE: Record<
 };
 
 export function CustomersPage() {
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [kycFilter, setKycFilter] = useState<KycStatus | ''>('');
-  const [sortPreset, setSortPreset] = useState('created_at:desc');
   const [trackingUser, setTrackingUser] = useState<User | null>(null);
 
-  const { sortBy, sortOrder } = parseSortPreset(sortPreset);
+  const {
+    data,
+    isLoading,
+    isPlaceholderData,
+    filters,
+    setFilters,
+    setPage,
+    setLimit,
+    resetFilters,
+    hasActiveFilters,
+  } = useAdminUsersList();
 
-  const { data, isLoading } = useAdminUsersList({
-    page,
-    search,
-    status: statusFilter,
-    kycStatus: kycFilter,
-    sortBy,
-    sortOrder,
-  });
+  // The search box is uncontrolled between submissions: firing a request per
+  // keystroke against a multi-column trigram search is wasteful, so the URL
+  // (and the query) only update on Enter or the Search button.
+  const [searchInput, setSearchInput] = useState(filters.search);
 
+  const sortPreset = `${filters.sortBy}:${filters.sortOrder}`;
   const users = data?.data ?? [];
   const pagination = data?.pagination;
-  const totalPages = pagination ? pagination.totalPages : 0;
+
+  function applySearch() {
+    setFilters({ search: searchInput.trim() });
+  }
 
   return (
     <div className="min-w-0 space-y-6">
@@ -295,10 +303,7 @@ export function CustomersPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    setSearch(searchInput);
-                    setPage(1);
-                  }
+                  if (e.key === 'Enter') applySearch();
                 }}
               />
             </div>
@@ -306,10 +311,7 @@ export function CustomersPage() {
               variant="secondary"
               size="sm"
               className="h-9 shrink-0"
-              onClick={() => {
-                setSearch(searchInput);
-                setPage(1);
-              }}
+              onClick={applySearch}
             >
               Search
             </Button>
@@ -317,11 +319,12 @@ export function CustomersPage() {
               <label className="text-xs font-medium text-muted-foreground">Account</label>
               <select
                 className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
+                value={filters.status}
+                onChange={(e) =>
+                  setFilters({
+                    status: e.target.value as (typeof ACCOUNT_STATUS_OPTIONS)[number],
+                  })
+                }
               >
                 <option value="">All accounts</option>
                 <option value="active">Active</option>
@@ -332,11 +335,12 @@ export function CustomersPage() {
               <label className="text-xs font-medium text-muted-foreground">KYC status</label>
               <select
                 className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                value={kycFilter}
-                onChange={(e) => {
-                  setKycFilter(e.target.value as KycStatus | '');
-                  setPage(1);
-                }}
+                value={filters.kycStatus}
+                onChange={(e) =>
+                  setFilters({
+                    kycStatus: e.target.value as (typeof KYC_STATUS_OPTIONS)[number],
+                  })
+                }
               >
                 {KYC_FILTER_OPTIONS.map((o) => (
                   <option key={o.value || 'all'} value={o.value}>
@@ -350,10 +354,7 @@ export function CustomersPage() {
               <select
                 className="h-9 w-full rounded-md border bg-background px-3 text-sm"
                 value={sortPreset}
-                onChange={(e) => {
-                  setSortPreset(e.target.value);
-                  setPage(1);
-                }}
+                onChange={(e) => setFilters(parseSortPreset(e.target.value))}
               >
                 {SORT_PRESETS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -362,6 +363,21 @@ export function CustomersPage() {
                 ))}
               </select>
             </div>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 shrink-0 text-muted-foreground"
+                onClick={() => {
+                  setSearchInput('');
+                  resetFilters();
+                }}
+              >
+                <X className="mr-1 size-4" />
+                Clear
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -531,31 +547,13 @@ export function CustomersPage() {
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({pagination?.totalItems} total)
-          </p>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        pagination={pagination}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+        isLoading={isPlaceholderData}
+        itemLabel="customers"
+      />
     </div>
   );
 }

@@ -13,4 +13,6 @@ export type {
   WalletTransaction,
   AdminApiKey,
   DailyUsageUser,
+  PaginationMeta,
+  PaginatedResponse,
 } from './admin';

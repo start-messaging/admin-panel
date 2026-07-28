@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -26,21 +25,56 @@ import {
   Bar,
 } from 'recharts';
 import { getDashboardStats, getAdminDailyUsage } from '@/apis/admin.api';
+import { Pagination } from '@/components/ui/pagination';
+import { adminQueryKeys } from '@/hooks/admin';
+import {
+  numberParam,
+  stringParam,
+  useUrlFilters,
+} from '@/hooks/useUrlFilters';
 import { ROUTES } from '@/lib/constants';
+
+/** Module-level so `useUrlFilters` can memoise on a stable identity. */
+const DAILY_USAGE_SCHEMA = {
+  date: stringParam(''),
+  usagePage: numberParam(1),
+  usageLimit: numberParam(20),
+  usageSearch: stringParam(''),
+} as const;
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  const {
+    filters: usageFilters,
+    setFilters: setUsageFilters,
+  } = useUrlFilters(DAILY_USAGE_SCHEMA, { pageKey: 'usagePage' });
+
+  // Defaults to today, but an empty value must stay empty so the server can
+  // apply its own IST "today" rather than the browser's notion of it.
+  const selectedDate =
+    usageFilters.date || new Date().toISOString().split('T')[0];
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin', 'dashboard'],
     queryFn: getDashboardStats,
   });
 
-  const { data: dailyUsage, isLoading: dailyUsageLoading } = useQuery({
-    queryKey: ['admin', 'dashboard-daily-usage', selectedDate],
-    queryFn: () => getAdminDailyUsage(selectedDate),
+  const usageQuery = useQuery({
+    queryKey: adminQueryKeys.dailyUsage({ ...usageFilters, date: selectedDate }),
+    queryFn: () =>
+      getAdminDailyUsage({
+        date: selectedDate,
+        page: usageFilters.usagePage,
+        limit: usageFilters.usageLimit,
+        search: usageFilters.usageSearch || undefined,
+      }),
+    placeholderData: keepPreviousData,
   });
+
+  const dailyUsage = usageQuery.data?.data ?? [];
+  const usagePagination = usageQuery.data?.pagination;
+  const dailyUsageLoading = usageQuery.isLoading;
 
   if (isLoading) {
     return (
@@ -270,14 +304,28 @@ export function DashboardPage() {
               <h3 className="text-lg font-semibold">User Daily Usage Breakdown</h3>
               <p className="text-sm text-muted-foreground">Detailed message consumption per user</p>
             </div>
-            <div className="flex items-center gap-2">
-              <CalendarDays className="size-4 text-muted-foreground" />
+            <div className="flex flex-wrap items-center gap-2">
               <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="h-9 rounded-md border bg-background px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                type="search"
+                placeholder="Filter customers…"
+                value={usageFilters.usageSearch}
+                onChange={(e) =>
+                  setUsageFilters(
+                    { usageSearch: e.target.value },
+                    { replace: true },
+                  )
+                }
+                className="h-9 w-full rounded-md border bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-primary sm:w-52"
               />
+              <div className="flex items-center gap-2">
+                <CalendarDays className="size-4 text-muted-foreground" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setUsageFilters({ date: e.target.value })}
+                  className="h-9 rounded-md border bg-background px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
             </div>
           </div>
           
@@ -299,7 +347,7 @@ export function DashboardPage() {
                       <Loader2 className="mx-auto size-5 animate-spin" />
                     </td>
                   </tr>
-                ) : !dailyUsage || dailyUsage.length === 0 ? (
+                ) : dailyUsage.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-muted-foreground">
                       No usage data found for this date.
@@ -335,6 +383,17 @@ export function DashboardPage() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            className="mt-4"
+            pagination={usagePagination}
+            onPageChange={(usagePage) =>
+              setUsageFilters({ usagePage }, { keepPage: true })
+            }
+            onLimitChange={(usageLimit) => setUsageFilters({ usageLimit })}
+            isLoading={usageQuery.isPlaceholderData}
+            itemLabel="customers"
+          />
         </div>
       </div>
 

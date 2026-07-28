@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
-  ChevronLeft,
   ChevronRight,
   Clock,
   CheckCircle2,
@@ -12,15 +11,51 @@ import {
 } from 'lucide-react';
 import { getKycList } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
+import { adminQueryKeys } from '@/hooks/admin';
+import {
+  enumParam,
+  numberParam,
+  stringParam,
+  useUrlFilters,
+} from '@/hooks/useUrlFilters';
 import { cn } from '@/lib/utils';
 import type { KycStatus } from '@/types';
 
-const STATUS_TABS: { label: string; value: KycStatus | 'all' }[] = [
+const KYC_TAB_VALUES = [
+  'all',
+  'pending',
+  'approved',
+  'rejected',
+] as const satisfies readonly (KycStatus | 'all')[];
+
+const STATUS_TABS: { label: string; value: (typeof KYC_TAB_VALUES)[number] }[] = [
   { label: 'All', value: 'all' },
   { label: 'Pending', value: 'pending' },
   { label: 'Approved', value: 'approved' },
   { label: 'Rejected', value: 'rejected' },
 ];
+
+const KYC_SORT_OPTIONS = [
+  'submitted_at',
+  'reviewed_at',
+  'created_at',
+  'name',
+  'email',
+  'business_name',
+] as const;
+
+/** Module-level so `useUrlFilters` can memoise on a stable identity. */
+const KYC_FILTER_SCHEMA = {
+  page: numberParam(1),
+  limit: numberParam(15),
+  // Pending is the working queue, so it stays the landing view — but it is now
+  // in the URL, so a link can point at approved or rejected instead.
+  status: enumParam(KYC_TAB_VALUES, 'pending'),
+  search: stringParam(''),
+  sortBy: enumParam(KYC_SORT_OPTIONS, 'submitted_at'),
+  sortOrder: enumParam(['asc', 'desc'] as const, 'desc'),
+} as const;
 
 const STATUS_BADGE: Record<string, { label: string; className: string; icon: typeof Clock }> = {
   pending: {
@@ -41,26 +76,35 @@ const STATUS_BADGE: Record<string, { label: string; className: string; icon: typ
 };
 
 export function KycReviewPage() {
-  const [activeTab, setActiveTab] = useState<KycStatus | 'all'>('pending');
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const limit = 15;
+  const { filters, setFilters, resetFilters, hasActiveFilters } =
+    useUrlFilters(KYC_FILTER_SCHEMA);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'kyc', activeTab, page, search],
+  const activeTab = filters.status;
+
+  // Uncontrolled between submissions so a multi-column trigram search only
+  // runs when the reviewer is done typing.
+  const [searchInput, setSearchInput] = useState(filters.search);
+
+  const { data, isLoading, isPlaceholderData } = useQuery({
+    queryKey: adminQueryKeys.kycList(filters),
     queryFn: () =>
       getKycList({
-        page,
-        limit,
-        search: search || undefined,
-        ...(activeTab !== 'all' && { status: activeTab }),
+        page: filters.page,
+        limit: filters.limit,
+        search: filters.search || undefined,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+        ...(activeTab !== 'all' && { status: activeTab as KycStatus }),
       }),
+    placeholderData: keepPreviousData,
   });
 
   const users = data?.data ?? [];
   const pagination = data?.pagination;
-  const totalPages = pagination ? pagination.totalPages : 0;
+
+  function applySearch() {
+    setFilters({ search: searchInput.trim() });
+  }
 
   return (
     <div className="space-y-6">
@@ -79,23 +123,30 @@ export function KycReviewPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                setSearch(searchInput);
-                setPage(1);
-              }
+              if (e.key === 'Enter') applySearch();
             }}
           />
           <Button
             variant="secondary"
             size="sm"
             className="h-9 shrink-0"
-            onClick={() => {
-              setSearch(searchInput);
-              setPage(1);
-            }}
+            onClick={applySearch}
           >
             Search
           </Button>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 shrink-0 text-muted-foreground"
+              onClick={() => {
+                setSearchInput('');
+                resetFilters();
+              }}
+            >
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
@@ -104,10 +155,7 @@ export function KycReviewPage() {
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => {
-              setActiveTab(tab.value);
-              setPage(1);
-            }}
+            onClick={() => setFilters({ status: tab.value })}
             className={cn(
               'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
               activeTab === tab.value
@@ -191,32 +239,13 @@ export function KycReviewPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({pagination?.totalItems} total)
-          </p>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        pagination={pagination}
+        onPageChange={(page) => setFilters({ page }, { keepPage: true })}
+        onLimitChange={(limit) => setFilters({ limit })}
+        isLoading={isPlaceholderData}
+        itemLabel="submissions"
+      />
     </div>
   );
 }

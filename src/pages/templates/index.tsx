@@ -1,32 +1,60 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft,
-  ChevronRight,
-  Edit2,
-  FileText,
-  Loader2,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
+import { Edit2, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTemplates, deleteTemplate } from '@/apis/admin.api';
 import type { TemplateListParams } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
+import { adminQueryKeys } from '@/hooks/admin';
+import {
+  enumParam,
+  numberParam,
+  stringParam,
+  useUrlFilters,
+} from '@/hooks/useUrlFilters';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
-type FilterTab = 'all' | 'draft' | 'published';
+const FILTER_TABS = ['all', 'draft', 'published'] as const;
+
+type FilterTab = (typeof FILTER_TABS)[number];
+
+const TEMPLATE_SORT_OPTIONS = [
+  'created_at',
+  'updated_at',
+  'name',
+  'status',
+] as const;
+
+/** Module-level so `useUrlFilters` can memoise on a stable identity. */
+const TEMPLATE_FILTER_SCHEMA = {
+  page: numberParam(1),
+  limit: numberParam(20),
+  status: enumParam(FILTER_TABS, 'all'),
+  search: stringParam(''),
+  sortBy: enumParam(TEMPLATE_SORT_OPTIONS, 'created_at'),
+  sortOrder: enumParam(['ASC', 'DESC'] as const, 'DESC'),
+} as const;
 
 export function TemplatesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [tab, setTab] = useState<FilterTab>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const limit = 20;
+
+  const { filters, setFilters } = useUrlFilters(TEMPLATE_FILTER_SCHEMA);
+  const tab = filters.status;
+
+  // Uncontrolled between submissions so searching does not fire a request per
+  // keystroke.
+  const [searchInput, setSearchInput] = useState(filters.search);
 
   const deleteMutation = useMutation({
     mutationFn: deleteTemplate,
@@ -41,21 +69,22 @@ export function TemplatesPage() {
     },
   });
 
-  function buildParams(): TemplateListParams {
-    const params: TemplateListParams = { page, limit };
-    if (tab === 'draft') params.status = 'draft';
-    else if (tab === 'published') params.status = 'published';
-    return params;
-  }
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'templates', page, tab],
-    queryFn: () => getTemplates(buildParams()),
+  const { data, isLoading, isPlaceholderData } = useQuery({
+    queryKey: adminQueryKeys.templates(filters),
+    queryFn: () =>
+      getTemplates({
+        page: filters.page,
+        limit: filters.limit,
+        status: tab === 'all' ? undefined : tab,
+        search: filters.search || undefined,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+      } satisfies TemplateListParams),
+    placeholderData: keepPreviousData,
   });
 
   const templates = data?.data ?? [];
   const pagination = data?.pagination;
-  const totalPages = pagination ? pagination.totalPages : 0;
 
   const tabs: { key: FilterTab; label: string }[] = [
     { key: 'all', label: 'All' },
@@ -81,25 +110,65 @@ export function TemplatesPage() {
         </Link>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 rounded-lg border bg-muted/30 p-1">
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => {
-              setTab(key);
-              setPage(1);
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 rounded-lg border bg-muted/30 p-1">
+          {tabs.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFilters({ status: key })}
+              className={cn(
+                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                tab === key
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="search"
+            enterKeyHint="search"
+            placeholder="Search name or body…"
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-64"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') setFilters({ search: searchInput.trim() });
             }}
-            className={cn(
-              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              tab === key
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-9 shrink-0"
+            onClick={() => setFilters({ search: searchInput.trim() })}
           >
-            {label}
-          </button>
-        ))}
+            Search
+          </Button>
+        </div>
+
+        <select
+          className="h-9 rounded-md border bg-background px-3 text-sm"
+          value={`${filters.sortBy}:${filters.sortOrder}`}
+          onChange={(e) => {
+            const [sortBy, sortOrder] = e.target.value.split(':');
+            setFilters({
+              sortBy: sortBy as (typeof TEMPLATE_SORT_OPTIONS)[number],
+              sortOrder: sortOrder as 'ASC' | 'DESC',
+            });
+          }}
+        >
+          <option value="created_at:DESC">Newest first</option>
+          <option value="created_at:ASC">Oldest first</option>
+          <option value="updated_at:DESC">Recently updated</option>
+          <option value="name:ASC">Name: A → Z</option>
+          <option value="name:DESC">Name: Z → A</option>
+          <option value="status:ASC">Status</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -240,32 +309,13 @@ export function TemplatesPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({pagination?.totalItems} total)
-          </p>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        pagination={pagination}
+        onPageChange={(page) => setFilters({ page }, { keepPage: true })}
+        onLimitChange={(limit) => setFilters({ limit })}
+        isLoading={isPlaceholderData}
+        itemLabel="templates"
+      />
     </div>
   );
 }

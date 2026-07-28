@@ -1,5 +1,21 @@
 export type MessageStatus = 'queued' | 'sent' | 'delivered' | 'failed' | 'expired';
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  /** -1 when the request opted out of counting and the total is unknown. */
+  totalItems: number;
+  /** -1 when the request opted out of counting and the total is unknown. */
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: PaginationMeta;
+}
+
 export interface AdminMessage {
   id: string;
   userId: string;

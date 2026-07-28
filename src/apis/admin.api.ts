@@ -11,6 +11,7 @@ import type {
   AdminApiKey,
   MessageStatus,
   DailyUsageUser,
+  PaginatedResponse,
 } from '@/types';
 
 // ── Types ──────────────────────────────────────────────
@@ -43,25 +44,23 @@ export interface DashboardStats {
   };
 }
 
-export interface Pagination {
-  page: number;
-  limit: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
+export type { PaginationMeta as Pagination, PaginatedResponse } from '@/types';
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: Pagination;
-}
+export type KycSortBy =
+  | 'submitted_at'
+  | 'reviewed_at'
+  | 'created_at'
+  | 'name'
+  | 'email'
+  | 'business_name';
 
 export interface KycListParams {
   page?: number;
   limit?: number;
   status?: KycStatus;
   search?: string;
+  sortBy?: KycSortBy;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface ReviewKycPayload {
@@ -95,24 +94,26 @@ export interface AdminUpdateUserPayload {
   adminCallNotes?: string | null;
 }
 
-export interface SmsWallet {
-  balance: string;
-  smsCount: number;
-}
-
 // ── API functions ──────────────────────────────────────
 
 export function getDashboardStats(): Promise<DashboardStats> {
   return apiGet<DashboardStats>('/admin/dashboard');
 }
 
-export function getAdminDailyUsage(date?: string): Promise<DailyUsageUser[]> {
-  const params = date ? { date } : undefined;
-  return apiGet<DailyUsageUser[]>('/admin/dashboard/daily-usage', { params });
+export interface DailyUsageParams {
+  date?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
 }
 
-export function getSmsWallet(): Promise<SmsWallet> {
-  return apiGet<SmsWallet>('/admin/sms-wallet');
+export function getAdminDailyUsage(
+  params?: DailyUsageParams,
+): Promise<PaginatedResponse<DailyUsageUser>> {
+  return apiGet<PaginatedResponse<DailyUsageUser>>(
+    '/admin/dashboard/daily-usage',
+    { params },
+  );
 }
 
 export function getUsers(params?: UserListParams): Promise<PaginatedResponse<User>> {
@@ -144,6 +145,19 @@ export function reviewKyc(userId: string, payload: ReviewKycPayload): Promise<Us
 
 // ── Customer detail ──────────────────────────────────────
 
+export type MessageSortBy =
+  | 'created_at'
+  | 'sent_at'
+  | 'delivered_at'
+  | 'status'
+  | 'cost';
+
+export type TransactionSortBy =
+  | 'created_at'
+  | 'amount'
+  | 'type'
+  | 'balance_after';
+
 export interface CustomerMessageParams {
   page?: number;
   limit?: number;
@@ -151,6 +165,22 @@ export interface CustomerMessageParams {
   endDate?: string;
   status?: MessageStatus;
   phoneNumber?: string;
+  apiKeyId?: string;
+  provider?: string;
+  sortBy?: MessageSortBy;
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+export interface CustomerTransactionParams {
+  page?: number;
+  limit?: number;
+  type?: 'credit' | 'debit' | 'refund';
+  startDate?: string;
+  endDate?: string;
+  referenceType?: string;
+  search?: string;
+  sortBy?: TransactionSortBy;
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 export function getCustomerOverview(userId: string): Promise<CustomerOverview> {
@@ -166,18 +196,26 @@ export function getCustomerMessages(
 
 export function getCustomerTransactions(
   userId: string,
-  params?: { page?: number; limit?: number },
+  params?: CustomerTransactionParams,
 ): Promise<PaginatedResponse<WalletTransaction>> {
   return apiGet<PaginatedResponse<WalletTransaction>>(`/admin/users/${userId}/transactions`, {
     params,
   });
 }
 
-export function getCustomerApiKeys(userId: string): Promise<AdminApiKey[]> {
-  return apiGet<AdminApiKey[]>(`/admin/users/${userId}/api-keys`);
+export function getCustomerApiKeys(
+  userId: string,
+  params?: { page?: number; limit?: number },
+): Promise<PaginatedResponse<AdminApiKey>> {
+  return apiGet<PaginatedResponse<AdminApiKey>>(
+    `/admin/users/${userId}/api-keys`,
+    { params },
+  );
 }
 
 // ── Template management ──────────────────────────────────
+
+export type TemplateSortBy = 'created_at' | 'updated_at' | 'name' | 'status';
 
 export interface TemplateListParams {
   page?: number;
@@ -185,6 +223,8 @@ export interface TemplateListParams {
   channelId?: string;
   status?: TemplateStatus;
   search?: string;
+  sortBy?: TemplateSortBy;
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 export interface CreateTemplatePayload {

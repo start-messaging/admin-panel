@@ -21,8 +21,6 @@ import {
   MessageSquare,
   IndianRupee,
   Key,
-  ChevronLeft,
-  ChevronRight,
   X,
   History,
   Activity,
@@ -40,6 +38,9 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
+import { enumParam, useUrlFilters } from '@/hooks/useUrlFilters';
+import { ADMIN_MESSAGE_STATUS_OPTIONS } from '@/hooks/admin/useAdminCustomerMessages';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { isoToDatetimeLocalValue } from '@/lib/datetime';
 import { ROUTES } from '@/lib/constants';
@@ -52,7 +53,7 @@ import {
   useAdminCustomerApiKeys,
   useUpdateAdminUser,
 } from '@/hooks/admin';
-import type { KycStatus, MessageStatus, User } from '@/types';
+import type { KycStatus, User } from '@/types';
 
 const KYC_CONFIG: Record<
   KycStatus,
@@ -86,7 +87,19 @@ function formatINR(amount: number | string) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(amount));
 }
 
-type TabType = 'overview' | 'messages' | 'transactions' | 'api-keys';
+const TAB_OPTIONS = [
+  'overview',
+  'messages',
+  'transactions',
+  'api-keys',
+] as const;
+
+type TabType = (typeof TAB_OPTIONS)[number];
+
+/** Module-level so `useUrlFilters` can memoise on a stable identity. */
+const TAB_SCHEMA = {
+  tab: enumParam(TAB_OPTIONS, 'overview'),
+} as const;
 
 function CustomerCallTrackingCard({ userId, user }: { userId: string; user: User }) {
   const [callNotesDraft, setCallNotesDraft] = useState(user.adminCallNotes ?? '');
@@ -181,59 +194,55 @@ export function CustomerDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
-
-  const [messagesPage, setMessagesPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<'all' | MessageStatus>('all');
-  const [phoneFilter, setPhoneFilter] = useState('');
-  const [phoneInput, setPhoneInput] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-
-  const [transactionsPage, setTransactionsPage] = useState(1);
+  // The open tab lives in the URL too, so a link to a customer can point at
+  // their transactions rather than always dropping the reader on Overview.
+  const { filters: tabFilters, setFilters: setTabFilters } = useUrlFilters(
+    TAB_SCHEMA,
+  );
+  const activeTab = tabFilters.tab;
+  const setActiveTab = (tab: TabType) => setTabFilters({ tab });
 
   const { data: user, isLoading } = useAdminUserDetail(userId);
 
   const { data: overview } = useAdminCustomerOverview(userId);
 
-  const { data: messagesData, isLoading: messagesLoading } = useAdminCustomerMessages({
+  const messagesQuery = useAdminCustomerMessages({
     userId,
     enabled: activeTab === 'messages',
-    page: messagesPage,
-    statusFilter,
-    phoneFilter,
-    startDate,
-    endDate,
   });
+  const { data: messagesData, isLoading: messagesLoading } = messagesQuery;
 
+  const transactionsQuery = useAdminCustomerTransactions({
+    userId,
+    enabled: activeTab === 'transactions',
+  });
   const { data: transactionsData, isLoading: transactionsLoading } =
-    useAdminCustomerTransactions({
-      userId,
-      enabled: activeTab === 'transactions',
-      page: transactionsPage,
-    });
+    transactionsQuery;
 
-  const { data: apiKeys, isLoading: apiKeysLoading } = useAdminCustomerApiKeys({
+  const apiKeysQuery = useAdminCustomerApiKeys({
     userId,
     enabled: activeTab === 'api-keys',
   });
+  const { data: apiKeysData, isLoading: apiKeysLoading } = apiKeysQuery;
 
   const updateUserStatus = useUpdateAdminUser();
 
-  const hasFilters = statusFilter !== 'all' || phoneFilter || startDate || endDate;
+  const statusFilter = messagesQuery.filters.msgStatus;
+  const startDate = messagesQuery.filters.msgFrom;
+  const endDate = messagesQuery.filters.msgTo;
+  const hasFilters = messagesQuery.hasActiveFilters;
+
+  // Uncontrolled until submitted, so a partial phone number does not fire a
+  // trigram search per keystroke.
+  const [phoneInput, setPhoneInput] = useState(messagesQuery.filters.msgPhone);
 
   function clearFilters() {
-    setStatusFilter('all');
-    setPhoneFilter('');
     setPhoneInput('');
-    setStartDate('');
-    setEndDate('');
-    setMessagesPage(1);
+    messagesQuery.resetFilters();
   }
 
   function applyPhoneFilter() {
-    setPhoneFilter(phoneInput);
-    setMessagesPage(1);
+    messagesQuery.setPhone(phoneInput.trim());
   }
 
   if (isLoading) {
@@ -260,11 +269,12 @@ export function CustomerDetailPage() {
 
   const messages = messagesData?.data ?? [];
   const msgPagination = messagesData?.pagination;
-  const totalMsgPages = msgPagination ? msgPagination.totalPages : 0;
 
   const transactions = transactionsData?.data ?? [];
   const txPagination = transactionsData?.pagination;
-  const totalTxPages = txPagination ? txPagination.totalPages : 0;
+
+  const apiKeys = apiKeysData?.data ?? [];
+  const apiKeysPagination = apiKeysData?.pagination;
 
   return (
     <div className="space-y-6">
@@ -627,10 +637,11 @@ export function CustomerDetailPage() {
               <select
                 className="h-9 w-32 rounded-md border bg-background px-3 text-xs"
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as 'all' | MessageStatus);
-                  setMessagesPage(1);
-                }}
+                onChange={(e) =>
+                  messagesQuery.setStatus(
+                    e.target.value as (typeof ADMIN_MESSAGE_STATUS_OPTIONS)[number],
+                  )
+                }
               >
                 <option value="all">All Status</option>
                 <option value="queued">Queued</option>
@@ -658,10 +669,9 @@ export function CustomerDetailPage() {
                 type="date"
                 className="h-9 rounded-md border bg-background px-3 text-xs"
                 value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  setMessagesPage(1);
-                }}
+                onChange={(e) =>
+                  messagesQuery.setDateRange(e.target.value, endDate)
+                }
               />
             </div>
             <div className="space-y-1">
@@ -670,10 +680,9 @@ export function CustomerDetailPage() {
                 type="date"
                 className="h-9 rounded-md border bg-background px-3 text-xs"
                 value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  setMessagesPage(1);
-                }}
+                onChange={(e) =>
+                  messagesQuery.setDateRange(startDate, e.target.value)
+                }
               />
             </div>
             {hasFilters && (
@@ -741,14 +750,14 @@ export function CustomerDetailPage() {
                 </table>
               </div>
 
-              {msgPagination && totalMsgPages > 1 && (
-                <PaginationFooter
-                  page={msgPagination.page}
-                  totalPages={totalMsgPages}
-                  totalItems={msgPagination.totalItems}
-                  onPageChange={setMessagesPage}
-                />
-              )}
+              <Pagination
+                className="mt-2 border-t pt-3"
+                pagination={msgPagination}
+                onPageChange={messagesQuery.setPage}
+                onLimitChange={messagesQuery.setLimit}
+                isLoading={messagesQuery.isPlaceholderData}
+                itemLabel="messages"
+              />
             </div>
           )}
         </div>
@@ -821,14 +830,14 @@ export function CustomerDetailPage() {
                 </table>
               </div>
               
-              {txPagination && totalTxPages > 1 && (
-                <PaginationFooter
-                  page={txPagination.page}
-                  totalPages={totalTxPages}
-                  totalItems={txPagination.totalItems}
-                  onPageChange={setTransactionsPage}
-                />
-              )}
+              <Pagination
+                className="mt-2 border-t pt-3"
+                pagination={txPagination}
+                onPageChange={transactionsQuery.setPage}
+                onLimitChange={transactionsQuery.setLimit}
+                isLoading={transactionsQuery.isPlaceholderData}
+                itemLabel="transactions"
+              />
             </div>
           )}
         </div>
@@ -845,7 +854,7 @@ export function CustomerDetailPage() {
             <div className="flex h-48 items-center justify-center">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
-          ) : !apiKeys || apiKeys.length === 0 ? (
+          ) : apiKeys.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
               <Key className="size-8 opacity-20" />
               <p className="text-sm font-medium">No active API keys found</p>
@@ -898,6 +907,15 @@ export function CustomerDetailPage() {
               ))}
             </div>
           )}
+
+          <Pagination
+            className="mt-4 border-t pt-3"
+            pagination={apiKeysPagination}
+            onPageChange={apiKeysQuery.setPage}
+            onLimitChange={apiKeysQuery.setLimit}
+            isLoading={apiKeysQuery.isPlaceholderData}
+            itemLabel="API keys"
+          />
         </div>
       )}
     </div>
@@ -959,40 +977,3 @@ function InfoRow({
   );
 }
 
-function PaginationFooter({
-  page,
-  totalPages,
-  totalItems,
-  onPageChange
-}: {
-  page: number;
-  totalPages: number;
-  totalItems: number;
-  onPageChange: (p: number) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between py-2 border-t mt-2">
-      <p className="text-[11px] text-muted-foreground">
-        Page <strong>{page}</strong> of {totalPages} ({totalItems} records)
-      </p>
-      <div className="flex gap-1">
-        <Button
-          variant="outline"
-          size="icon-xs"
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
-        >
-          <ChevronLeft className="size-3.5" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon-xs"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-        >
-          <ChevronRight className="size-3.5" />
-        </Button>
-      </div>
-    </div>
-  );
-}
