@@ -12,6 +12,9 @@ import { KycDetailPage } from '@/pages/kyc-review/kyc-detail';
 import { TemplatesPage } from '@/pages/templates';
 import { TemplateCreatePage } from '@/pages/templates/template-create';
 import { TemplateDetailPage } from '@/pages/templates/template-detail';
+import { AffiliatePartnersPage } from '@/pages/affiliate/partners';
+import { AffiliatePayoutsPage } from '@/pages/affiliate/payouts';
+import { AffiliateSettingsPage } from '@/pages/affiliate/settings';
 import { ROUTES } from '@/lib/constants';
 
 export default function App() {
@@ -36,6 +39,9 @@ export default function App() {
           <Route path={ROUTES.TEMPLATES} element={<TemplatesPage />} />
           <Route path={ROUTES.TEMPLATE_CREATE} element={<TemplateCreatePage />} />
           <Route path={ROUTES.TEMPLATE_DETAIL} element={<TemplateDetailPage />} />
+          <Route path={ROUTES.AFFILIATE_PARTNERS} element={<AffiliatePartnersPage />} />
+          <Route path={ROUTES.AFFILIATE_PAYOUTS} element={<AffiliatePayoutsPage />} />
+          <Route path={ROUTES.AFFILIATE_SETTINGS} element={<AffiliateSettingsPage />} />
         </Route>
       </Route>
 

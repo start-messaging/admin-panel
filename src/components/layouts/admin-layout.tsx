@@ -9,6 +9,9 @@ import {
   Menu,
   X,
   MessageSquare,
+  Handshake,
+  Banknote,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -20,6 +23,12 @@ const NAV_ITEMS = [
   { to: ROUTES.CUSTOMERS, label: 'Customers', icon: Users },
   { to: ROUTES.KYC_REVIEW, label: 'KYC Reviews', icon: FileCheck },
   { to: ROUTES.TEMPLATES, label: 'Templates', icon: FileText },
+] as const;
+
+const AFFILIATE_NAV_ITEMS = [
+  { to: ROUTES.AFFILIATE_PARTNERS, label: 'Partners', icon: Handshake },
+  { to: ROUTES.AFFILIATE_PAYOUTS, label: 'Payouts', icon: Banknote },
+  { to: ROUTES.AFFILIATE_SETTINGS, label: 'Programme', icon: Settings },
 ] as const;
 
 export function AdminLayout() {
@@ -63,6 +72,31 @@ export function AdminLayout() {
               key={to}
               to={to}
               end={to === ROUTES.DASHBOARD}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+                )
+              }
+            >
+              <Icon className="size-4" />
+              {label}
+            </NavLink>
+          ))}
+
+          {/* Grouped separately: the affiliate programme is a distinct
+              surface with its own money flow, and mixing it into the main
+              list makes "Partners" read like another customer segment. */}
+          <p className="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">
+            Affiliate
+          </p>
+          {AFFILIATE_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
                 cn(

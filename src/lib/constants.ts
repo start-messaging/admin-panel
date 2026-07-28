@@ -12,4 +12,7 @@ export const ROUTES = {
   TEMPLATES: '/templates',
   TEMPLATE_CREATE: '/templates/create',
   TEMPLATE_DETAIL: '/templates/:id',
+  AFFILIATE_PARTNERS: '/affiliate/partners',
+  AFFILIATE_PAYOUTS: '/affiliate/payouts',
+  AFFILIATE_SETTINGS: '/affiliate/settings',
 } as const;
