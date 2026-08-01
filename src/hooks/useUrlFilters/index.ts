@@ -35,7 +35,11 @@ export function numberParam(defaultValue: number): ParamCodec<number> {
   return {
     defaultValue,
     parse: (raw) => {
-      if (raw === null) return defaultValue;
+      // `?page=` (present but empty) has to fall back like an absent key.
+      // Number("") is 0, which is finite, so a bare Number() check would
+      // return 0 here — and the server's @Min(1) turns that into a 400 for
+      // anyone who followed a truncated or hand-edited link.
+      if (raw === null || raw.trim() === "") return defaultValue;
       const parsed = Number(raw);
       return Number.isFinite(parsed) ? parsed : defaultValue;
     },

@@ -41,7 +41,11 @@ export function buildPageList(current: number, total: number): PageListEntry[] {
   const withGaps: PageListEntry[] = [];
   let previous = 0;
   for (const page of sorted) {
-    if (previous && page - previous > 1) withGaps.push(PAGE_GAP);
+    // A hole of exactly one page is rendered as that page, not as an
+    // ellipsis: the gap marker takes the same room as the number it hides,
+    // so collapsing it only makes the page unreachable by click.
+    if (previous && page - previous === 2) withGaps.push(previous + 1);
+    else if (previous && page - previous > 1) withGaps.push(PAGE_GAP);
     withGaps.push(page);
     previous = page;
   }
