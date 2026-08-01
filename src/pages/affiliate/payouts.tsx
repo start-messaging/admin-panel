@@ -121,8 +121,8 @@ export function AffiliatePayoutsPage() {
                         {p.payoutMethod.toUpperCase()} · {p.payoutAccountName ?? '—'} · {p.payoutAccountRef ?? '—'}
                       </span>
                     ) : (
-                      // Blocks the admin from "paying" a partner who never told
-                      // us where to send it.
+                      // Flags it here; the settle modal is what actually
+                      // blocks marking such a payout paid.
                       <span className="font-medium text-red-600">
                         No payout details on file — partner must add them first
                       </span>
@@ -219,8 +219,27 @@ function SettleModal({ payout, onClose }: { payout: AdminPayout; onClose: () => 
           partner's available balance so the next cycle picks it up again.
         </p>
 
+        {!payout.payoutMethod && (
+          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+            This payout has no destination recorded, so no money can have been
+            sent. Mark it failed — the balance returns to the partner and the
+            next cycle retries once they add their details.
+          </p>
+        )}
+
         <div className="flex gap-2">
-          <Button className="flex-1" disabled={mutation.isPending || !reference} onClick={() => mutation.mutate('paid')}>
+          {/*
+            Also gated on the payout having a destination. The list already
+            renders "No payout details on file" in red for these, and a comment
+            there claimed that blocked the admin — it did not; only the
+            reference field was checked. Marking one paid records money as sent
+            to nowhere, and PAID is terminal, so undoing it needs raw SQL.
+          */}
+          <Button
+            className="flex-1"
+            disabled={mutation.isPending || !reference || !payout.payoutMethod}
+            onClick={() => mutation.mutate('paid')}
+          >
             {mutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
             Mark paid
           </Button>
