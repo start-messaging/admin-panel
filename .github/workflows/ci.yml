@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, upgrade]
+  push:
+    branches: [main, upgrade]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        # There is no `typecheck` script in this package; `build` runs
+        # `tsc -b && vite build`. Running the compiler on its own first means a
+        # type error is reported as a type error rather than as a build failure.
+        run: npx tsc -b
+
+      - name: Lint
+        # Reports but does not block: this package has pre-existing violations
+        # that predate the pipeline, and failing on them would stop every pull
+        # request on day one. Drop this line once the baseline is clean.
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Build
+        # VITE_API_BASE_URL is inlined at build time. A placeholder is enough to
+        # prove the bundle compiles; the real value belongs to the deploy, not
+        # to CI, and baking a wrong one into an artefact nobody ships is
+        # harmless here but would not be if this job also deployed.
+        env:
+          VITE_API_BASE_URL: https://api.invalid
+        run: npm run build
