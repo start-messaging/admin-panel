@@ -44,13 +44,21 @@ jobs:
       # Cheap insurance against a build that silently picked up the wrong
       # environment: a staging deploy pointing at the production API would
       # otherwise look completely healthy.
+      # Anchored on the scheme, because the staging host is
+      # stage-api.startmessaging.com and a bare "api.startmessaging.com"
+      # pattern is a substring of it — that check matched every staging
+      # bundle and would have blocked every deploy.
       - name: Refuse to ship a bundle pointing at production
         run: |
-          if grep -rq "api\.startmessaging\.com" dist/assets/*.js; then
+          if grep -rqE "https://api\.startmessaging\.com" dist/assets/*.js; then
             echo "Bundle references the production API — refusing to deploy."
             exit 1
           fi
-          echo "No production API reference in the bundle."
+          if ! grep -rqE "https://stage-api\.startmessaging\.com" dist/assets/*.js; then
+            echo "Bundle does not reference the staging API — env did not apply."
+            exit 1
+          fi
+          echo "Bundle points at staging and not at production."
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
