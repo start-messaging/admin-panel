@@ -1,0 +1,60 @@
+name: Deploy staging
+
+# Deploys the `staging` branch to the `admin-panel-staging` Worker. The
+# production Worker is named `admin-panel`; the name is passed explicitly on
+# every deploy so a missing or edited wrangler.jsonc can never cause this
+# workflow to overwrite production.
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging-admin-panel
+  cancel-in-progress: true
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Vite inlines these at build time, so they are build inputs rather than
+      # runtime config — a Worker secret would arrive too late to matter.
+      - name: Build against the staging API
+        env:
+          VITE_API_BASE_URL: ${{ vars.STAGING_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.STAGING_GOOGLE_CLIENT_ID }}
+        run: npm run build
+
+      # Cheap insurance against a build that silently picked up the wrong
+      # environment: a staging deploy pointing at the production API would
+      # otherwise look completely healthy.
+      - name: Refuse to ship a bundle pointing at production
+        run: |
+          if grep -rq "api\.startmessaging\.com" dist/assets/*.js; then
+            echo "Bundle references the production API — refusing to deploy."
+            exit 1
+          fi
+          echo "No production API reference in the bundle."
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --name admin-panel-staging
