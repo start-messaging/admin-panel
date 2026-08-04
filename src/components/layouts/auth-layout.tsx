@@ -6,15 +6,14 @@ export function AuthLayout() {
     <div className="flex min-h-screen">
       {/* Left Side: Branding & Info */}
       <div className="hidden w-1/2 flex-col justify-between bg-blue-950 p-12 lg:flex relative overflow-hidden">
+        {/*
+          Gradient only. This carried an <img> pointing at an illustration that
+          is not in the repo, behind an onError that hid it — so it never
+          rendered, and every sign-in load spent a request fetching the SPA
+          shell that the 404 handler returns in its place. Drop in a real asset
+          here if one is ever produced.
+        */}
         <div className="absolute inset-0 opacity-40">
-          <img 
-            src="/auth_illustration_mockup_1773600554660.png" 
-            alt="StartMessaging Admin Background" 
-            className="h-full w-full object-cover grayscale-[0.5] brightness-[0.7]"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
           <div className="absolute inset-0 bg-gradient-to-tr from-blue-950 via-blue-950/80 to-transparent" />
         </div>
 

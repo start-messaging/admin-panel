@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'sonner';
@@ -33,6 +34,16 @@ export function SignInPage() {
     }
   }
 
+  const [buttonWidth, setButtonWidth] = useState(() =>
+    Math.min(380, Math.max(200, window.innerWidth - 64)),
+  );
+  useEffect(() => {
+    const onResize = () =>
+      setButtonWidth(Math.min(380, Math.max(200, window.innerWidth - 64)));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center lg:text-left">
@@ -48,7 +59,11 @@ export function SignInPage() {
             onSuccess={handleGoogleSuccess}
             onError={() => toast.error('Google sign-in failed. Please try again.')}
             size="large"
-            width="380"
+            // Google renders this at a fixed pixel width, so a hardcoded 380
+            // overflows any phone narrower than that and clips the only
+            // control on the page. Recomputed on resize as well as on mount,
+            // because rotating a phone changes the answer.
+            width={String(buttonWidth)}
             text="continue_with"
             shape="rectangular"
           />
