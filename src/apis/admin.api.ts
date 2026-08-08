@@ -203,6 +203,27 @@ export function searchMessages(
   return apiGet<PaginatedResponse<AdminMessage>>('/admin/messages', { params });
 }
 
+export interface TopupPayload {
+  email: string;
+  amount: number;
+  description: string;
+  internalNote?: string;
+}
+
+export interface TopupResult {
+  user: { id: string; email: string; firstName: string; lastName: string };
+  amount: number;
+  description: string;
+  balanceBefore: number;
+  balanceAfter: number;
+  transactionId: string;
+}
+
+/** Manual wallet credit by email. Admin-only; recorded against the actor. */
+export function topupWallet(payload: TopupPayload): Promise<TopupResult> {
+  return apiPost<TopupResult>('/admin/wallet/topup', payload);
+}
+
 export function getCustomerMessages(
   userId: string,
   params?: CustomerMessageParams,

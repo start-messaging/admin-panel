@@ -12,6 +12,7 @@ import {
   Handshake,
   Banknote,
   Settings,
+  Wallet,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { to: ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
   { to: ROUTES.CUSTOMERS, label: 'Customers', icon: Users },
   { to: ROUTES.MESSAGES, label: 'Number Lookup', icon: MessageSquare },
+  { to: ROUTES.TOPUP, label: 'Manual Top-up', icon: Wallet },
   { to: ROUTES.KYC_REVIEW, label: 'KYC Reviews', icon: FileCheck },
   { to: ROUTES.TEMPLATES, label: 'Templates', icon: FileText },
 ] as const;

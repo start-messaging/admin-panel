@@ -8,6 +8,7 @@ export const ROUTES = {
   CUSTOMERS: '/customers',
   CUSTOMER_DETAIL: '/customers/:userId',
   MESSAGES: '/messages',
+  TOPUP: '/topup',
   KYC_REVIEW: '/kyc-review',
   KYC_DETAIL: '/kyc-review/:userId',
   TEMPLATES: '/templates',
