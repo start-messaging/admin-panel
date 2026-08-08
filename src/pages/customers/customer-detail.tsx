@@ -45,6 +45,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { isoToDatetimeLocalValue } from '@/lib/datetime';
 import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { MessageDetailModal } from './message-detail-modal';
 import {
   useAdminUserDetail,
   useAdminCustomerOverview,
@@ -53,7 +54,7 @@ import {
   useAdminCustomerApiKeys,
   useUpdateAdminUser,
 } from '@/hooks/admin';
-import type { KycStatus, User } from '@/types';
+import type { AdminMessage, KycStatus, User } from '@/types';
 
 const KYC_CONFIG: Record<
   KycStatus,
@@ -235,6 +236,9 @@ export function CustomerDetailPage() {
   // Uncontrolled until submitted, so a partial phone number does not fire a
   // trigram search per keystroke.
   const [phoneInput, setPhoneInput] = useState(messagesQuery.filters.msgPhone);
+  const [selectedMessage, setSelectedMessage] = useState<AdminMessage | null>(
+    null,
+  );
 
   function clearFilters() {
     setPhoneInput('');
@@ -710,17 +714,22 @@ export function CustomerDetailPage() {
                     <tr className="border-b bg-muted/40 text-left text-muted-foreground">
                       <th className="px-4 py-2.5 font-semibold">Recipient</th>
                       <th className="px-4 py-2.5 font-semibold">Status</th>
+                      <th className="px-4 py-2.5 font-semibold">Template</th>
                       <th className="px-4 py-2.5 font-semibold">Provider</th>
                       <th className="px-4 py-2.5 font-semibold text-right">Cost</th>
                       <th className="min-w-[200px] px-4 py-2.5 font-semibold">
                         Failure / status detail
                       </th>
-                      <th className="px-4 py-2.5 font-semibold">Sent At</th>
+                      <th className="px-4 py-2.5 font-semibold">Created At</th>
                     </tr>
                   </thead>
                   <tbody>
                     {messages.map((msg) => (
-                      <tr key={msg.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <tr
+                        key={msg.id}
+                        onClick={() => setSelectedMessage(msg)}
+                        className="cursor-pointer border-b last:border-0 hover:bg-muted/30"
+                      >
                         <td className="px-4 py-3 font-mono text-[11px]">{msg.phoneNumber}</td>
                         <td className="px-4 py-3">
                           <span
@@ -731,6 +740,15 @@ export function CustomerDetailPage() {
                           >
                             {msg.status}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {msg.otpTemplate ? (
+                            msg.otpTemplate.name
+                          ) : (
+                            <span className="italic opacity-60">
+                              {msg.renderedContent ? 'fallback body' : '—'}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{msg.provider}</td>
                         <td className="px-4 py-3 text-right font-medium">{formatINR(msg.costAmount)}</td>
@@ -917,6 +935,13 @@ export function CustomerDetailPage() {
             itemLabel="API keys"
           />
         </div>
+      )}
+
+      {selectedMessage && (
+        <MessageDetailModal
+          message={selectedMessage}
+          onClose={() => setSelectedMessage(null)}
+        />
       )}
     </div>
   );

@@ -1,4 +1,10 @@
-export type MessageStatus = 'queued' | 'sent' | 'delivered' | 'failed' | 'expired';
+export type MessageStatus =
+  | 'initiated'
+  | 'queued'
+  | 'sent'
+  | 'delivered'
+  | 'failed'
+  | 'expired';
 
 export interface PaginationMeta {
   page: number;
@@ -16,6 +22,14 @@ export interface PaginatedResponse<T> {
   pagination: PaginationMeta;
 }
 
+/** Trimmed to what the admin UI reads; the API returns the whole row. */
+export interface AdminOtpTemplate {
+  id: string;
+  name: string;
+  body: string;
+  status: string;
+}
+
 export interface AdminMessage {
   id: string;
   userId: string;
@@ -29,6 +43,16 @@ export interface AdminMessage {
   failureReason: string | null;
   /** Set when DLR/webhook reports failure details separately */
   providerStatusDescription: string | null;
+  /**
+   * The provider's own rejection wording. Admin-only by construction — no
+   * customer projection selects it. Null on every row sent before 2026-08-08.
+   */
+  providerFailureReason: string | null;
+  /** The template actually resolved at send time; null if the fallback body ran. */
+  otpTemplateId: string | null;
+  otpTemplate: AdminOtpTemplate | null;
+  /** Text handed to the provider, digits masked. Null for pre-2026-08-08 rows. */
+  renderedContent: string | null;
   sentAt: string | null;
   deliveredAt: string | null;
   otpRequestId: string | null;
