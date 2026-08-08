@@ -187,6 +187,22 @@ export function getCustomerOverview(userId: string): Promise<CustomerOverview> {
   return apiGet<CustomerOverview>(`/admin/users/${userId}/overview`);
 }
 
+export interface MessageSearchParams {
+  page?: number;
+  limit?: number;
+  phoneNumber?: string;
+  status?: string;
+  provider?: string;
+  otpTemplateId?: string;
+}
+
+/** Platform-wide message search — "what happened to this number?". */
+export function searchMessages(
+  params: MessageSearchParams,
+): Promise<PaginatedResponse<AdminMessage>> {
+  return apiGet<PaginatedResponse<AdminMessage>>('/admin/messages', { params });
+}
+
 export function getCustomerMessages(
   userId: string,
   params?: CustomerMessageParams,

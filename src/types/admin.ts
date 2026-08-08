@@ -48,6 +48,14 @@ export interface AdminMessage {
    * customer projection selects it. Null on every row sent before 2026-08-08.
    */
   providerFailureReason: string | null;
+  /** Owning customer, returned only by the platform-wide admin search. */
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    companyName: string | null;
+  } | null;
   /** The template actually resolved at send time; null if the fallback body ran. */
   otpTemplateId: string | null;
   otpTemplate: AdminOtpTemplate | null;

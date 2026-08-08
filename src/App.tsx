@@ -6,6 +6,7 @@ import { AdminLayout } from '@/components/layouts/admin-layout';
 import { SignInPage } from '@/pages/signIn';
 import { DashboardPage } from '@/pages/dashboard';
 import { CustomersPage } from '@/pages/customers';
+import { MessagesLookupPage } from '@/pages/messages';
 import { CustomerDetailPage } from '@/pages/customers/customer-detail';
 import { KycReviewPage } from '@/pages/kyc-review';
 import { KycDetailPage } from '@/pages/kyc-review/kyc-detail';
@@ -34,6 +35,7 @@ export default function App() {
           <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
           <Route path={ROUTES.CUSTOMERS} element={<CustomersPage />} />
           <Route path={ROUTES.CUSTOMER_DETAIL} element={<CustomerDetailPage />} />
+          <Route path={ROUTES.MESSAGES} element={<MessagesLookupPage />} />
           <Route path={ROUTES.KYC_REVIEW} element={<KycReviewPage />} />
           <Route path={ROUTES.KYC_DETAIL} element={<KycDetailPage />} />
           <Route path={ROUTES.TEMPLATES} element={<TemplatesPage />} />

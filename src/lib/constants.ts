@@ -7,6 +7,7 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   CUSTOMERS: '/customers',
   CUSTOMER_DETAIL: '/customers/:userId',
+  MESSAGES: '/messages',
   KYC_REVIEW: '/kyc-review',
   KYC_DETAIL: '/kyc-review/:userId',
   TEMPLATES: '/templates',
