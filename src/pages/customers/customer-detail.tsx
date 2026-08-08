@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { getUserEmailHistory } from '@/apis/email.api';
 import {
   ArrowLeft,
   Mail,
@@ -94,6 +96,7 @@ const TAB_OPTIONS = [
   'messages',
   'transactions',
   'api-keys',
+  'email',
 ] as const;
 
 type TabType = (typeof TAB_OPTIONS)[number];
@@ -226,6 +229,19 @@ export function CustomerDetailPage() {
     enabled: activeTab === 'api-keys',
   });
   const { data: apiKeysData, isLoading: apiKeysLoading } = apiKeysQuery;
+
+  // Deliberately not paginated: the question this answers is "have we already
+  // been at this person, and did it land" before writing to them again, and
+  // the most recent handful settles it.
+  const { data: emailHistoryData, isLoading: emailHistoryLoading } = useQuery({
+    queryKey: ['admin', 'email', 'user-history', userId],
+    queryFn: () => getUserEmailHistory(userId as string, { page: 1, limit: 20 }),
+    // The route cannot match without a userId, and the tab cannot be open
+    // before the page has rendered — but the query is gated on both anyway
+    // rather than asserting the param is present.
+    enabled: activeTab === 'email' && Boolean(userId),
+  });
+  const emailHistory = emailHistoryData?.data ?? [];
 
   const updateUserStatus = useUpdateAdminUser();
 
@@ -411,6 +427,7 @@ export function CustomerDetailPage() {
             { id: 'messages', label: 'Messages', icon: MessageSquare },
             { id: 'transactions', label: 'Transactions', icon: History },
             { id: 'api-keys', label: 'API Keys', icon: Key },
+            { id: 'email', label: 'Email', icon: Mail },
           ] as const
         ).map((tab) => (
           <button
@@ -987,6 +1004,70 @@ export function CustomerDetailPage() {
             isLoading={apiKeysQuery.isPlaceholderData}
             itemLabel="API keys"
           />
+        </div>
+      )}
+
+      {activeTab === 'email' && (
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <h3 className="text-sm font-semibold">Outreach history</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Campaigns this customer has been sent, and whether they engaged.
+          </p>
+
+          {emailHistoryLoading ? (
+            <div className="flex h-32 items-center justify-center">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : emailHistory.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              This customer has not been sent a campaign.
+            </p>
+          ) : (
+            <div className="mt-4 divide-y">
+              {emailHistory.map((row) => (
+                <div
+                  key={row.id}
+                  className="flex flex-wrap items-center justify-between gap-2 py-2.5"
+                >
+                  <div className="min-w-0">
+                    {row.campaign ? (
+                      <Link
+                        to={`/email/${row.campaign.id}`}
+                        className="text-sm font-medium hover:underline"
+                      >
+                        {row.campaign.name}
+                      </Link>
+                    ) : (
+                      <span className="text-sm font-medium">Campaign</span>
+                    )}
+                    <p className="truncate text-xs text-muted-foreground">
+                      {row.sentAt
+                        ? new Date(row.sentAt).toLocaleString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : 'Not sent yet'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    {/* Clicks first: opens are inflated by mail clients that
+                        pre-fetch the tracking pixel without anyone reading. */}
+                    <span className="tabular-nums">
+                      <span className="font-medium">{row.clickCount}</span>{' '}
+                      <span className="text-muted-foreground">clicks</span>
+                    </span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {row.openCount} opens
+                    </span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 font-medium capitalize">
+                      {row.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
