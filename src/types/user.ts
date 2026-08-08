@@ -1,3 +1,4 @@
+import type { Tag, DerivedTag, UserMetrics } from './admin';
 export type KycStatus = 'not_submitted' | 'pending' | 'approved' | 'rejected';
 
 export interface User {
@@ -28,6 +29,10 @@ export interface User {
   createdAt: string;
   /** Present on admin user list responses */
   walletBalance?: number;
+  /** Admin-only labels and computed account facts. Never sent to customers. */
+  tags?: Tag[];
+  derivedTags?: DerivedTag[];
+  metrics?: UserMetrics | null;
   /** Admin-only: last outbound call (ISO); not returned on customer APIs */
   adminLastCalledAt?: string | null;
   /** Admin-only internal notes */

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { UserTagsEditor } from '@/components/tags/user-tags-editor';
 import { Link } from 'react-router-dom';
 import {
   Loader2,
@@ -469,6 +470,19 @@ export function CustomersPage() {
                           </p>
                         </div>
                       </Link>
+                      {/* Outside the Link on purpose: nested inside it, every
+                          tag click would navigate to the customer instead of
+                          editing. stopPropagation guards the row handler too. */}
+                      <div
+                        className="mt-1.5 pl-12"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <UserTagsEditor
+                          userId={user.id}
+                          tags={user.tags ?? []}
+                          derivedTags={user.derivedTags ?? []}
+                        />
+                      </div>
                     </td>
                     <td className="min-w-[120px] px-4 py-3 font-mono text-xs text-muted-foreground">
                       {user.mobileNumber ?? '—'}

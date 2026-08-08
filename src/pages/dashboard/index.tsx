@@ -3,6 +3,7 @@ import { TagChip } from '@/components/tags/tag-chip';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
+  FileCheck,
   UserCheck,
   MessageSquare,
   IndianRupee,
@@ -90,7 +91,33 @@ export function DashboardPage() {
   const performance = stats?.performance;
   const trends = stats?.trends;
 
-  const cards = [
+  const cards: {
+    label: string;
+    value: string;
+    description: string;
+    icon: typeof Users;
+    color: string;
+    iconBg: string;
+    to?: string;
+  }[] = [
+    {
+      // First card deliberately: KYC is the only one that is a queue of work
+      // rather than a number to admire, and it goes stale if nobody looks.
+      label: 'KYC Pending',
+      value: (overview?.pendingKycCount ?? 0).toLocaleString('en-IN'),
+      description:
+        (overview?.pendingKycCount ?? 0) > 0
+          ? 'awaiting review'
+          : 'nothing waiting',
+      icon: FileCheck,
+      color: (overview?.pendingKycCount ?? 0) > 0
+        ? 'text-red-600'
+        : 'text-emerald-600',
+      iconBg: (overview?.pendingKycCount ?? 0) > 0
+        ? 'bg-red-100'
+        : 'bg-emerald-100',
+      to: ROUTES.KYC_REVIEW,
+    },
     {
       label: 'Total Customers',
       value: (overview?.totalUsers ?? 0).toLocaleString('en-IN'),
@@ -151,8 +178,19 @@ export function DashboardPage() {
 
       {/* Analytics cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {cards.map(({ label, value, description, icon: Icon, color, iconBg }) => (
-          <div key={label} className="rounded-xl border bg-card p-5">
+        {cards.map(({ label, value, description, icon: Icon, color, iconBg, to }) => (
+          <Link
+            key={label}
+            to={to ?? '#'}
+            // Only the KYC card leads anywhere; the rest stay inert rather
+            // than pretending to be clickable.
+            className={
+              to
+                ? 'block rounded-xl border bg-card p-5 transition-colors hover:bg-muted/40'
+                : 'block cursor-default rounded-xl border bg-card p-5'
+            }
+            onClick={(e) => !to && e.preventDefault()}
+          >
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">{label}</p>
               <div className={`flex size-9 items-center justify-center rounded-lg ${iconBg}`}>
@@ -163,7 +201,7 @@ export function DashboardPage() {
               <p className="text-2xl font-bold tracking-tight">{value}</p>
               <p className="mt-1 text-xs text-muted-foreground">{description}</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
