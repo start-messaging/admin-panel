@@ -124,6 +124,14 @@ export function apiPatch<T>(
   return apiClient.patch<T>(url, data, config).then((r) => r.data);
 }
 
+export function apiPut<T>(
+  url: string,
+  data?: unknown,
+  config?: AxiosRequestConfig,
+): Promise<T> {
+  return apiClient.put<T>(url, data, config).then((r) => r.data);
+}
+
 export function apiDelete<T>(
   url: string,
   config?: AxiosRequestConfig,

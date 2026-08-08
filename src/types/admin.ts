@@ -1,3 +1,33 @@
+export interface Tag {
+  id: string;
+  name: string;
+  colour: string;
+  description: string | null;
+}
+
+/** Computed from account activity; cannot be applied or removed by hand. */
+export interface DerivedTag {
+  kind: 'derived';
+  key: string;
+  label: string;
+  colour: string;
+}
+
+export interface UserMetrics {
+  messages30d: number;
+  delivered30d: number;
+  failed30d: number;
+  /** Null when nothing was sent in the window. */
+  deliveryRate30d: number | null;
+  lifetimeMessages: number;
+  lifetimeSpend: number;
+  topupCount: number;
+  topupTotal: number;
+  balance: number;
+  lastMessageAt: string | null;
+  stuckCount: number;
+}
+
 export type MessageStatus =
   | 'initiated'
   | 'queued'
@@ -70,6 +100,9 @@ export interface AdminMessage {
 
 export interface CustomerOverview {
   wallet: { balance: number; currency: string };
+  tags: Tag[];
+  derivedTags: DerivedTag[];
+  metrics: UserMetrics | null;
   messages: {
     totalMessages: number;
     totalSpent: number;
@@ -92,6 +125,9 @@ export interface DailyUsageUser {
     email: string;
     businessName: string | null;
   };
+  tags?: Tag[];
+  derivedTags?: DerivedTag[];
+  metrics?: UserMetrics | null;
   totalMessages: number;
   deliveredCount: number;
   failedCount: number;

@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost, apiDelete } from './api-client';
+import { apiGet, apiPatch, apiPost, apiPut, apiDelete } from './api-client';
 import type {
   User,
   KycStatus,
@@ -6,6 +6,7 @@ import type {
   OtpTemplate,
   TemplateStatus,
   AdminMessage,
+  Tag,
   CustomerOverview,
   WalletTransaction,
   AdminApiKey,
@@ -222,6 +223,27 @@ export interface TopupResult {
 /** Manual wallet credit by email. Admin-only; recorded against the actor. */
 export function topupWallet(payload: TopupPayload): Promise<TopupResult> {
   return apiPost<TopupResult>('/admin/wallet/topup', payload);
+}
+
+export function listTags(): Promise<Tag[]> {
+  return apiGet<Tag[]>('/admin/tags');
+}
+
+export function createTag(payload: {
+  name: string;
+  colour?: string;
+  description?: string;
+}): Promise<Tag> {
+  return apiPost<Tag>('/admin/tags', payload);
+}
+
+export function deleteTag(id: string): Promise<{ deleted: boolean }> {
+  return apiDelete<{ deleted: boolean }>(`/admin/tags/${id}`);
+}
+
+/** Replaces the customer's whole manual tag set — not a delta. */
+export function setUserTags(userId: string, tagIds: string[]): Promise<Tag[]> {
+  return apiPut<Tag[]>(`/admin/users/${userId}/tags`, { tagIds });
 }
 
 export function getCustomerMessages(

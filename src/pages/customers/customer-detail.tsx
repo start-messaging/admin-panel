@@ -46,6 +46,7 @@ import { isoToDatetimeLocalValue } from '@/lib/datetime';
 import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { MessageDetailModal } from './message-detail-modal';
+import { UserTagsEditor } from '@/components/tags/user-tags-editor';
 import {
   useAdminUserDetail,
   useAdminCustomerOverview,
@@ -327,6 +328,58 @@ export function CustomerDetailPage() {
           </span>
         </div>
       </div>
+
+      {/* Tags — admin-only labels plus computed facts about the account */}
+      {overview && (
+        <div className="rounded-xl border bg-card p-4 shadow-sm">
+          <UserTagsEditor
+            userId={userId!}
+            tags={overview.tags ?? []}
+            derivedTags={overview.derivedTags ?? []}
+          />
+          {overview.metrics && (
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-t pt-3 text-[11px] text-muted-foreground">
+              <span>
+                30d:{' '}
+                <strong className="tabular-nums text-foreground">
+                  {overview.metrics.messages30d.toLocaleString('en-IN')}
+                </strong>{' '}
+                sent
+              </span>
+              <span>
+                Delivery:{' '}
+                <strong className="tabular-nums text-foreground">
+                  {overview.metrics.deliveryRate30d === null
+                    ? '—'
+                    : `${overview.metrics.deliveryRate30d}%`}
+                </strong>
+              </span>
+              <span>
+                Top-ups:{' '}
+                <strong className="tabular-nums text-foreground">
+                  {overview.metrics.topupCount}
+                </strong>{' '}
+                ({formatINR(overview.metrics.topupTotal)})
+              </span>
+              <span>
+                Lifetime:{' '}
+                <strong className="tabular-nums text-foreground">
+                  {overview.metrics.lifetimeMessages.toLocaleString('en-IN')}
+                </strong>{' '}
+                msgs
+              </span>
+              {overview.metrics.stuckCount > 0 && (
+                <span className="text-amber-700">
+                  Unsettled:{' '}
+                  <strong className="tabular-nums">
+                    {overview.metrics.stuckCount}
+                  </strong>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Overview Stats */}
       {overview && (

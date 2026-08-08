@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { TagChip } from '@/components/tags/tag-chip';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -370,6 +371,31 @@ export function DashboardPage() {
                         {row.user.businessName && (
                           <div className="mt-0.5 w-fit rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                             {row.user.businessName}
+                          </div>
+                        )}
+                        {/* Who this account is, next to what it sent — the
+                            breakdown is where usage is reviewed, so the
+                            labels belong here rather than a click away. */}
+                        {((row.tags?.length ?? 0) > 0 ||
+                          (row.derivedTags?.length ?? 0) > 0) && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {row.tags?.map((t) => (
+                              <TagChip
+                                key={t.id}
+                                label={t.name}
+                                colour={t.colour}
+                                title={t.description ?? undefined}
+                              />
+                            ))}
+                            {row.derivedTags?.map((d) => (
+                              <TagChip
+                                key={d.key}
+                                label={d.label}
+                                colour={d.colour}
+                                derived
+                                title="Calculated automatically"
+                              />
+                            ))}
                           </div>
                         )}
                       </td>

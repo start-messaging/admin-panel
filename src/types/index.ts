@@ -15,4 +15,7 @@ export type {
   DailyUsageUser,
   PaginationMeta,
   PaginatedResponse,
+  Tag,
+  DerivedTag,
+  UserMetrics,
 } from './admin';
