@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   FileCheck,
   FileText,
+  Mail,
   Users,
   Menu,
   X,
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { to: ROUTES.TOPUP, label: 'Manual Top-up', icon: Wallet },
   { to: ROUTES.KYC_REVIEW, label: 'KYC Reviews', icon: FileCheck },
   { to: ROUTES.TEMPLATES, label: 'Templates', icon: FileText },
+  { to: ROUTES.EMAIL, label: 'Email', icon: Mail },
 ] as const;
 
 const AFFILIATE_NAV_ITEMS = [
