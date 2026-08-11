@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { TagChip } from '@/components/tags/tag-chip';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Users,
   FileCheck,
@@ -45,8 +45,6 @@ const DAILY_USAGE_SCHEMA = {
 } as const;
 
 export function DashboardPage() {
-  const navigate = useNavigate();
-
   const {
     filters: usageFilters,
     setFilters: setUsageFilters,
@@ -394,15 +392,20 @@ export function DashboardPage() {
                   </tr>
                 ) : (
                   dailyUsage.map((row) => (
-                    <tr 
-                      key={row.user.id} 
-                      className="border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/customers/${row.user.id}`)}
+                    <tr
+                      key={row.user.id}
+                      className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <div className="font-medium text-foreground">
+                        {/* The name is the link, rather than the whole row, so
+                            the customer can be opened in a new tab and the
+                            rest of the row stays selectable. */}
+                        <Link
+                          to={`/customers/${row.user.id}`}
+                          className="font-medium text-foreground hover:underline underline-offset-2"
+                        >
                           {row.user.firstName} {row.user.lastName}
-                        </div>
+                        </Link>
                         <div className="text-xs text-muted-foreground">
                           {row.user.email}
                         </div>
