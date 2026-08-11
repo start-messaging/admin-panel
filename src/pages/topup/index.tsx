@@ -1,10 +1,20 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Wallet, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { topupWallet, type TopupResult } from '@/apis/admin.api';
+import { topupWallet, getUsers, type TopupResult } from '@/apis/admin.api';
+import type { User } from '@/types';
 import { Button } from '@/components/ui/button';
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxSearchInput,
+} from '@/components/ui/combobox';
 import { ROUTES } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 
 /**
  * Manual wallet credit, replacing the psql script that was run by hand.
@@ -23,13 +33,77 @@ const formatINR = (amount: number | string) =>
 
 const QUICK_AMOUNTS = [100, 500, 1000, 5000];
 
+/**
+ * Why the credit is being made, offered as presets over the customer-visible
+ * description.
+ *
+ * A wallet credit means two completely different things depending on where the
+ * money came from — the customer paid us out of band, or we gave it away — and
+ * the ledger line is the only place the customer finds out which. Left to free
+ * text that distinction got written a different way every time, or omitted.
+ *
+ * These fill the description rather than being a separate field because
+ * description is the only channel the customer actually reads; a category
+ * stored beside it would need a schema change and still would not appear in
+ * their history. They are a starting point, not the finished sentence — the
+ * field stays editable so the specifics (which invoice, which outage) can be
+ * added, which is what "say why, not just what" asks for.
+ */
+const TOPUP_REASONS = [
+  {
+    key: 'payment',
+    label: 'Payment received',
+    template: 'Payment received — credited to your wallet',
+    tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    hint: 'They paid us outside the app (bank transfer, UPI). Real money in.',
+  },
+  {
+    key: 'goodwill',
+    label: 'Goodwill credit',
+    template: 'Goodwill credit for the disruption on ',
+    tone: 'border-amber-200 bg-amber-50 text-amber-800',
+    hint: 'Compensation for something that went wrong. Finish the sentence.',
+  },
+  {
+    key: 'promo',
+    label: 'Promotional credit',
+    template: 'Promotional credit — added to your wallet at no charge',
+    tone: 'border-blue-200 bg-blue-50 text-blue-800',
+    hint: 'A bonus or campaign credit. Nothing was paid for this.',
+  },
+] as const;
+
 export function TopupPage() {
+  // `email` is still the only thing sent to the API. The picker is a way to
+  // fill it accurately, not a replacement for it — a customer who does not
+  // come back from search (a stale page, an odd spelling) can still be
+  // credited by typing the address, which is how this screen worked before.
   const [email, setEmail] = useState('');
+  const [picked, setPicked] = useState<User | null>(null);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [debounced, setDebounced] = useState('');
   const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [internalNote, setInternalNote] = useState('');
   const [result, setResult] = useState<TopupResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // The customer search runs against a multi-column trigram query, so it is
+  // debounced rather than fired per keystroke — the same reason the customers
+  // list submits its search on Enter instead of as you type.
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(email.trim()), 250);
+    return () => clearTimeout(t);
+  }, [email]);
+
+  const matches = useQuery({
+    queryKey: ['admin', 'users', 'topup-picker', debounced],
+    queryFn: () => getUsers({ search: debounced, limit: 8 }),
+    // Two characters is the point where the result set stops being "everyone".
+    enabled: customerOpen && debounced.length >= 2,
+    placeholderData: (prev) => prev,
+  });
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -46,8 +120,13 @@ export function TopupPage() {
       // credit to the same customer does not mean retyping it, which is when
       // the wrong address gets pasted in.
       setAmount('');
+      setReason(null);
       setDescription('');
       setInternalNote('');
+      // The picked customer carried a balance read before the credit; drop it
+      // rather than leave a stale figure under the box. The result panel below
+      // shows the authoritative before → after.
+      setPicked(null);
     },
     onError: (e: unknown) => {
       setResult(null);
@@ -72,7 +151,7 @@ export function TopupPage() {
           Manual top-up
         </h1>
         <p className="mt-1 text-xs text-muted-foreground">
-          Credit a customer's wallet by email. The credit is immediate and
+          Find a customer and credit their wallet. The credit is immediate and
           recorded against you in the ledger.
         </p>
       </div>
@@ -81,15 +160,81 @@ export function TopupPage() {
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Customer email
+              Customer
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="customer@example.com"
-              className="h-9 w-full rounded-md border bg-background px-3 text-xs"
-            />
+            <Combobox<User, false>
+              open={customerOpen}
+              onOpenChange={setCustomerOpen}
+              items={matches.data?.data ?? []}
+              inputValue={email}
+              onInputValueChange={(v) => {
+                setEmail(v);
+                // Typing again means the earlier choice no longer describes
+                // what is in the box.
+                setPicked(null);
+              }}
+              itemToStringLabel={(u) => u.email}
+              isItemEqualToValue={(a, b) => a.id === b.id}
+              value={null}
+              onValueChange={(user) => {
+                if (!user) return;
+                setEmail(user.email);
+                setPicked(user);
+                setCustomerOpen(false);
+              }}
+            >
+              <ComboboxSearchInput
+                placeholder="Search by name, email or business…"
+                onFocus={() => setCustomerOpen(true)}
+              />
+
+              <ComboboxContent>
+                {matches.isFetching && (matches.data?.data.length ?? 0) === 0 ? (
+                  <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    Searching…
+                  </p>
+                ) : (
+                  <>
+                    <ComboboxList>
+                      {(u: User) => (
+                        <ComboboxItem key={u.id} value={u}>
+                          <span className="block truncate font-medium">
+                            {u.firstName} {u.lastName}
+                            {u.businessName ? ` · ${u.businessName}` : ''}
+                          </span>
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {u.email}
+                            {u.walletBalance !== undefined &&
+                              ` · ${formatINR(u.walletBalance)} balance`}
+                          </span>
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                    <ComboboxEmpty>
+                      {email.trim().length < 2
+                        ? 'Type at least two characters to search.'
+                        : 'No customer matches — you can still type the full email.'}
+                    </ComboboxEmpty>
+                  </>
+                )}
+              </ComboboxContent>
+            </Combobox>
+
+            {picked ? (
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Crediting{' '}
+                <strong className="text-foreground">
+                  {picked.firstName} {picked.lastName}
+                </strong>
+                {picked.walletBalance !== undefined && (
+                  <> — balance now {formatINR(picked.walletBalance)}</>
+                )}
+              </p>
+            ) : (
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Pick a customer from the list, or type their full email.
+              </p>
+            )}
           </div>
 
           <div>
@@ -121,18 +266,58 @@ export function TopupPage() {
 
           <div>
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Reason
+            </label>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {TOPUP_REASONS.map((r) => {
+                const on = reason === r.key;
+                return (
+                  <button
+                    key={r.key}
+                    type="button"
+                    title={r.hint}
+                    onClick={() => {
+                      setReason(r.key);
+                      setDescription(r.template);
+                    }}
+                    className={cn(
+                      'rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors',
+                      on
+                        ? r.tone
+                        : 'border-dashed text-muted-foreground hover:bg-muted',
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               Description — the customer sees this
             </label>
             <input
               type="text"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                // Once the text stops matching the preset it picked, the chip
+                // is no longer describing what will be sent.
+                setReason((current) => {
+                  const picked = TOPUP_REASONS.find((x) => x.key === current);
+                  return picked && e.target.value.startsWith(picked.template)
+                    ? current
+                    : null;
+                });
+              }}
               placeholder="Goodwill credit — failed sends on 2026-08-07"
               maxLength={200}
               className="h-9 w-full rounded-md border bg-background px-3 text-xs"
             />
             <p className="mt-1 text-[10px] text-muted-foreground">
-              Appears in their transaction history. Say why, not just what.
+              {reason
+                ? TOPUP_REASONS.find((r) => r.key === reason)?.hint
+                : 'Appears in their transaction history. Say why, not just what.'}
             </p>
           </div>
 
