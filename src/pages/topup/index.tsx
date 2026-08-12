@@ -167,15 +167,36 @@ export function TopupPage() {
               onOpenChange={setCustomerOpen}
               items={matches.data?.data ?? []}
               inputValue={email}
-              onInputValueChange={(v) => {
+              // The combobox reports three different reasons for an input
+              // change and they must not be treated alike.
+              //
+              // `item-press` is the combobox filling the box with the chosen
+              // email. Treating that as typing cleared `picked`, which left
+              // the value null, which made the combobox reset the box -- so
+              // picking a customer emptied the field instead of filling it.
+              //
+              // `input-clear` is the combobox reverting the box to match the
+              // selection, which fires on blur. Honouring it wiped a typed-out
+              // address the moment focus moved to Amount, and typing the
+              // address is the whole fallback for a customer search cannot
+              // reach. This screen wants the text kept either way, and it is
+              // still clearable by selecting it and deleting -- that arrives
+              // as `input-change`.
+              //
+              // Only genuine typing invalidates an earlier choice.
+              onInputValueChange={(v, details) => {
+                const reason = (details as { reason?: string } | undefined)
+                  ?.reason;
+                if (reason === 'input-clear') return;
                 setEmail(v);
-                // Typing again means the earlier choice no longer describes
-                // what is in the box.
-                setPicked(null);
+                if (reason === 'input-change') setPicked(null);
               }}
               itemToStringLabel={(u) => u.email}
               isItemEqualToValue={(a, b) => a.id === b.id}
-              value={null}
+              // Must reflect the real selection: a hardcoded null told the
+              // combobox nothing was ever selected, so it kept resetting the
+              // input to match.
+              value={picked}
               onValueChange={(user) => {
                 if (!user) return;
                 setEmail(user.email);
