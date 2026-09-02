@@ -13,11 +13,14 @@ import {
   Globe,
   MapPin,
   FileText,
-  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getKycDetail, reviewKyc } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
+import { ActionTooltip } from '@/components/common/action-tooltip';
+import { ExternalLink } from '@/components/common/external-link';
+import { HelpBadge } from '@/components/common/help-badge';
+import { KYC_ACTION_HELP, KYC_STATUS_HELP } from '@/lib/help-copy';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { ROUTES, STORAGE_KEYS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -128,7 +131,8 @@ export function KycDetailPage() {
           </h1>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
-        <span
+        <HelpBadge
+          help={KYC_STATUS_HELP[user.kycStatus]}
           className={cn(
             'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium',
             status.className,
@@ -136,7 +140,7 @@ export function KycDetailPage() {
         >
           <StatusIcon className="size-3.5" />
           {status.label}
-        </span>
+        </HelpBadge>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -214,14 +218,16 @@ export function KycDetailPage() {
                 </div>
               )}
               {docBlobUrl && (
-                <a
+                // A blob: href never gets target="_blank" from the component,
+                // so the download attribute keeps working exactly as before.
+                <ExternalLink
                   href={docBlobUrl}
+                  icon
                   download={user.kycDocumentPath.split('/').pop()}
-                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                  className="inline-flex items-center text-sm text-primary hover:underline"
                 >
-                  <ExternalLink className="size-3.5" />
                   Download document
-                </a>
+                </ExternalLink>
               )}
             </div>
           ) : (
@@ -309,22 +315,31 @@ export function KycDetailPage() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleApprove} disabled={mutation.isPending}>
-                  {mutation.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="size-4" />
+                <ActionTooltip help={KYC_ACTION_HELP.approve}>
+                  {(props) => (
+                    <Button {...props} onClick={handleApprove} disabled={mutation.isPending}>
+                      {mutation.isPending ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="size-4" />
+                      )}
+                      Approve
+                    </Button>
                   )}
-                  Approve
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowRejectForm(true)}
-                  disabled={mutation.isPending}
-                >
-                  <XCircle className="size-4" />
-                  Reject
-                </Button>
+                </ActionTooltip>
+                <ActionTooltip help={KYC_ACTION_HELP.reject}>
+                  {(props) => (
+                    <Button
+                      {...props}
+                      variant="outline"
+                      onClick={() => setShowRejectForm(true)}
+                      disabled={mutation.isPending}
+                    >
+                      <XCircle className="size-4" />
+                      Reject
+                    </Button>
+                  )}
+                </ActionTooltip>
               </div>
             </div>
           )}
@@ -351,14 +366,12 @@ function InfoRow({
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
         {isLink ? (
-          <a
+          <ExternalLink
             href={value}
-            target="_blank"
-            rel="noopener noreferrer"
             className="truncate text-sm text-primary hover:underline"
           >
             {value}
-          </a>
+          </ExternalLink>
         ) : (
           <p className="text-sm">{value}</p>
         )}

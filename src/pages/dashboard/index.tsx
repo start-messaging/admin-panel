@@ -27,6 +27,11 @@ import {
   Bar,
 } from 'recharts';
 import { getDashboardStats, getAdminDailyUsage } from '@/apis/admin.api';
+import { HeaderTooltip } from '@/components/common/header-tooltip';
+import {
+  DASHBOARD_STAT_HELP,
+  DASHBOARD_USAGE_COLUMN_HELP,
+} from '@/lib/help-copy';
 import { Pagination } from '@/components/ui/pagination';
 import { adminQueryKeys } from '@/hooks/admin';
 import {
@@ -97,6 +102,7 @@ export function DashboardPage() {
     color: string;
     iconBg: string;
     to?: string;
+    help?: string;
   }[] = [
     {
       // First card deliberately: KYC is the only one that is a queue of work
@@ -115,6 +121,7 @@ export function DashboardPage() {
         ? 'bg-red-100'
         : 'bg-emerald-100',
       to: ROUTES.KYC_REVIEW,
+      help: DASHBOARD_STAT_HELP.kycPending,
     },
     {
       label: 'Total Customers',
@@ -123,6 +130,7 @@ export function DashboardPage() {
       icon: Users,
       color: 'text-blue-600',
       iconBg: 'bg-blue-100',
+      help: DASHBOARD_STAT_HELP.totalCustomers,
     },
     {
       label: 'Active Customers',
@@ -131,6 +139,7 @@ export function DashboardPage() {
       icon: UserCheck,
       color: 'text-emerald-600',
       iconBg: 'bg-emerald-100',
+      help: DASHBOARD_STAT_HELP.activeCustomers,
     },
     {
       label: 'Total Messages',
@@ -139,6 +148,7 @@ export function DashboardPage() {
       icon: MessageSquare,
       color: 'text-violet-600',
       iconBg: 'bg-violet-100',
+      help: DASHBOARD_STAT_HELP.totalMessages,
     },
     {
       label: 'Platform Revenue',
@@ -147,6 +157,7 @@ export function DashboardPage() {
       icon: IndianRupee,
       color: 'text-amber-600',
       iconBg: 'bg-amber-100',
+      help: DASHBOARD_STAT_HELP.platformRevenue,
     },
     {
       label: 'Payments via Razorpay',
@@ -155,6 +166,7 @@ export function DashboardPage() {
       icon: CreditCard,
       color: 'text-sky-600',
       iconBg: 'bg-sky-100',
+      help: DASHBOARD_STAT_HELP.razorpay,
     },
   ];
 
@@ -176,7 +188,7 @@ export function DashboardPage() {
 
       {/* Analytics cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {cards.map(({ label, value, description, icon: Icon, color, iconBg, to }) => (
+        {cards.map(({ label, value, description, icon: Icon, color, iconBg, to, help }) => (
           <Link
             key={label}
             to={to ?? '#'}
@@ -190,7 +202,15 @@ export function DashboardPage() {
             onClick={(e) => !to && e.preventDefault()}
           >
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">{label}</p>
+              {help ? (
+                <HeaderTooltip
+                  label={label}
+                  help={help}
+                  className="text-sm font-medium text-muted-foreground"
+                />
+              ) : (
+                <p className="text-sm font-medium text-muted-foreground">{label}</p>
+              )}
               <div className={`flex size-9 items-center justify-center rounded-lg ${iconBg}`}>
                 <Icon className={`size-5 ${color}`} />
               </div>
@@ -269,7 +289,11 @@ export function DashboardPage() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Overall Success Rate</span>
+                  <HeaderTooltip
+                    label="Overall Success Rate"
+                    help={DASHBOARD_STAT_HELP.successRate}
+                    className="text-sm font-medium"
+                  />
                   <span className="text-sm font-bold text-emerald-600">
                     {performance?.successRate.toFixed(1)}%
                   </span>
@@ -290,7 +314,9 @@ export function DashboardPage() {
                   </p>
                 </div>
                 <div className="rounded-lg bg-red-50 p-3">
-                  <p className="text-xs font-semibold text-red-600">FAILED TODAY</p>
+                  <p className="text-xs font-semibold text-red-600">
+                    <HeaderTooltip label="FAILED TODAY" help={DASHBOARD_STAT_HELP.failedToday} />
+                  </p>
                   <p className="mt-1 text-xl font-bold text-red-900">
                     {performance?.failedMessages}
                   </p>
@@ -372,9 +398,15 @@ export function DashboardPage() {
                 <tr className="border-b bg-muted/40 text-left text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Customer Details</th>
                   <th className="px-4 py-3 font-medium text-right">Total Msgs</th>
-                  <th className="px-4 py-3 font-medium text-right">Delivered</th>
-                  <th className="px-4 py-3 font-medium text-right">Failed</th>
-                  <th className="px-4 py-3 font-medium text-right">Total Spent</th>
+                  <th className="px-4 py-3 font-medium text-right">
+                    <HeaderTooltip label="Delivered" help={DASHBOARD_USAGE_COLUMN_HELP.delivered} />
+                  </th>
+                  <th className="px-4 py-3 font-medium text-right">
+                    <HeaderTooltip label="Failed" help={DASHBOARD_USAGE_COLUMN_HELP.failed} />
+                  </th>
+                  <th className="px-4 py-3 font-medium text-right">
+                    <HeaderTooltip label="Total Spent" help={DASHBOARD_USAGE_COLUMN_HELP.totalSpent} />
+                  </th>
                 </tr>
               </thead>
               <tbody>

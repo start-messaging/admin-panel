@@ -4,10 +4,12 @@ import { FullPageSpinner } from '@/components/common/full-page-spinner';
 import { ROUTES } from '@/lib/constants';
 
 export function GuestRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) return <FullPageSpinner />;
-  if (isAuthenticated) return <Navigate to={ROUTES.DASHBOARD} replace />;
+  // Only an admin session has somewhere to be sent. Redirecting every
+  // authenticated user sent non-admins into a ping-pong with ProtectedRoute.
+  if (isAuthenticated && user?.role === 'admin') return <Navigate to={ROUTES.DASHBOARD} replace />;
 
   return <Outlet />;
 }

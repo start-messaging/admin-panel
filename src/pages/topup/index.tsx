@@ -5,6 +5,8 @@ import { Wallet, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { topupWallet, getUsers, type TopupResult } from '@/apis/admin.api';
 import type { User } from '@/types';
 import { Button } from '@/components/ui/button';
+import { ActionTooltip } from '@/components/common/action-tooltip';
+import { TOPUP_ACTION_HELP } from '@/lib/help-copy';
 import {
   Combobox,
   ComboboxContent,
@@ -356,17 +358,22 @@ export function TopupPage() {
             />
           </div>
 
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={!canSubmit}
-            className="w-full"
-          >
-            {mutation.isPending
-              ? 'Crediting…'
-              : parsed > 0
-                ? `Credit ${formatINR(parsed)}`
-                : 'Credit wallet'}
-          </Button>
+          <ActionTooltip help={TOPUP_ACTION_HELP.credit} side="top">
+            {(props) => (
+              <Button
+                {...props}
+                onClick={() => mutation.mutate()}
+                disabled={!canSubmit}
+                className="w-full"
+              >
+                {mutation.isPending
+                  ? 'Crediting…'
+                  : parsed > 0
+                    ? `Credit ${formatINR(parsed)}`
+                    : 'Credit wallet'}
+              </Button>
+            )}
+          </ActionTooltip>
         </div>
 
         {error && (

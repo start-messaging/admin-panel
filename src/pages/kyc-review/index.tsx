@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { getKycList } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
+import { HelpBadge } from '@/components/common/help-badge';
+import { KYC_STATUS_HELP } from '@/lib/help-copy';
 import { Pagination } from '@/components/ui/pagination';
 import { adminQueryKeys } from '@/hooks/admin';
 import {
@@ -221,7 +223,8 @@ export function KycReviewPage() {
                     </span>
                   )}
                   {badge && (
-                    <span
+                    <HelpBadge
+                      help={KYC_STATUS_HELP[user.kycStatus]}
                       className={cn(
                         'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
                         badge.className,
@@ -229,7 +232,7 @@ export function KycReviewPage() {
                     >
                       {BadgeIcon && <BadgeIcon className="size-3" />}
                       {badge.label}
-                    </span>
+                    </HelpBadge>
                   )}
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </div>

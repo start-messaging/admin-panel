@@ -5,8 +5,10 @@ import { ArrowLeft, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getChannels, createTemplate } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
+import { HeaderTooltip } from '@/components/common/header-tooltip';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { ROUTES } from '@/lib/constants';
+import { TEMPLATE_FIELD_HELP } from '@/lib/help-copy';
 
 const PLACEHOLDERS = ['{{otp}}', '{{expiry}}', '{{appName}}'] as const;
 
@@ -124,7 +126,9 @@ export function TemplateCreatePage() {
 
           {/* Body */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Message Body</label>
+            <label className="text-sm font-medium">
+              <HeaderTooltip label="Message Body" help={TEMPLATE_FIELD_HELP.body} />
+            </label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}

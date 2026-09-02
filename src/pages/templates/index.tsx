@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { getTemplates, deleteTemplate } from '@/apis/admin.api';
 import type { TemplateListParams } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
+import { HeaderTooltip } from '@/components/common/header-tooltip';
+import { HelpBadge } from '@/components/common/help-badge';
+import { TEMPLATE_STATUS_HELP, TEMPLATES_COLUMN_HELP } from '@/lib/help-copy';
 import { Pagination } from '@/components/ui/pagination';
 import { adminQueryKeys } from '@/hooks/admin';
 import {
@@ -188,10 +191,10 @@ export function TemplatesPage() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">
-                  Channel
+                  <HeaderTooltip label="Channel" help={TEMPLATES_COLUMN_HELP.channel} />
                 </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                  Status
+                  <HeaderTooltip label="Status" help={TEMPLATES_COLUMN_HELP.status} />
                 </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
                   Language
@@ -227,7 +230,8 @@ export function TemplatesPage() {
                     </span>
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">
-                    <span
+                    <HelpBadge
+                      help={TEMPLATE_STATUS_HELP[template.status]}
                       className={cn(
                         'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
                         template.status === 'published'
@@ -242,7 +246,7 @@ export function TemplatesPage() {
                         )}
                       />
                       {template.status === 'published' ? 'Published' : 'Draft'}
-                    </span>
+                    </HelpBadge>
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
                     {template.language ?? '—'}

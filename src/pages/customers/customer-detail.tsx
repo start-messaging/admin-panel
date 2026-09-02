@@ -38,6 +38,18 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { ActionTooltip } from '@/components/common/action-tooltip';
+import { ExternalLink } from '@/components/common/external-link';
+import { HeaderTooltip } from '@/components/common/header-tooltip';
+import { HelpBadge } from '@/components/common/help-badge';
+import {
+  ACCOUNT_STATUS_HELP,
+  CUSTOMER_ACTION_HELP,
+  CUSTOMERS_COLUMN_HELP,
+  KYC_STATUS_HELP,
+  MESSAGE_STATUS_HELP,
+  TRANSACTION_TYPE_HELP,
+} from '@/lib/help-copy';
 import { Pagination } from '@/components/ui/pagination';
 import { enumParam, useUrlFilters } from '@/hooks/useUrlFilters';
 import { ADMIN_MESSAGE_STATUS_OPTIONS } from '@/hooks/admin/useAdminCustomerMessages';
@@ -303,7 +315,8 @@ export function CustomerDetailPage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span
+          <HelpBadge
+            help={user.isActive ? ACCOUNT_STATUS_HELP.active : ACCOUNT_STATUS_HELP.suspended}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
               user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700',
@@ -316,8 +329,9 @@ export function CustomerDetailPage() {
               )}
             />
             {user.isActive ? 'Active' : 'Suspended'}
-          </span>
-          <span
+          </HelpBadge>
+          <HelpBadge
+            help={KYC_STATUS_HELP[user.kycStatus]}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
               kyc.className,
@@ -325,7 +339,7 @@ export function CustomerDetailPage() {
           >
             <KycIcon className="size-3" />
             {kyc.label}
-          </span>
+          </HelpBadge>
         </div>
       </div>
 
@@ -388,6 +402,7 @@ export function CustomerDetailPage() {
             icon={Wallet}
             label="Wallet Balance"
             value={formatINR(overview.wallet.balance)}
+            help={CUSTOMERS_COLUMN_HELP.balance}
           />
           <StatCard
             icon={MessageSquare}
@@ -398,6 +413,7 @@ export function CustomerDetailPage() {
             icon={IndianRupee}
             label="Total Spent"
             value={formatINR(overview.messages.totalSpent)}
+            help="What this customer has spent on messages, all time — charged only for delivered sends."
           />
           <StatCard icon={Key} label="API Keys" value={overview.apiKeyCount.toString()} />
         </div>
@@ -564,37 +580,44 @@ export function CustomerDetailPage() {
           <div className="rounded-xl border bg-card p-5 shadow-sm lg:col-span-2">
             <h2 className="mb-4 font-semibold">Management Actions</h2>
             <div className="flex flex-wrap gap-3">
-              <Button
-                variant={user.isActive ? 'destructive' : 'default'}
-                size="sm"
-                className="gap-2"
-                disabled={updateUserStatus.isPending}
-                onClick={() => {
-                  if (!userId) return;
-                  updateUserStatus.mutate(
-                    { userId, payload: { isActive: !user.isActive } },
-                    {
-                      onSuccess: (data) => {
-                        toast.success(
-                          data.isActive
-                            ? 'User activated successfully'
-                            : 'User suspended successfully',
-                        );
-                      },
-                      onError: (e) => toast.error(getApiErrorMessage(e)),
-                    },
-                  );
-                }}
+              <ActionTooltip
+                help={user.isActive ? CUSTOMER_ACTION_HELP.suspend : CUSTOMER_ACTION_HELP.activate}
               >
-                {updateUserStatus.isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : user.isActive ? (
-                  <ToggleLeft className="size-4" />
-                ) : (
-                  <ToggleRight className="size-4" />
+                {(props) => (
+                  <Button
+                    {...props}
+                    variant={user.isActive ? 'destructive' : 'default'}
+                    size="sm"
+                    className="gap-2"
+                    disabled={updateUserStatus.isPending}
+                    onClick={() => {
+                      if (!userId) return;
+                      updateUserStatus.mutate(
+                        { userId, payload: { isActive: !user.isActive } },
+                        {
+                          onSuccess: (data) => {
+                            toast.success(
+                              data.isActive
+                                ? 'User activated successfully'
+                                : 'User suspended successfully',
+                            );
+                          },
+                          onError: (e) => toast.error(getApiErrorMessage(e)),
+                        },
+                      );
+                    }}
+                  >
+                    {updateUserStatus.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : user.isActive ? (
+                      <ToggleLeft className="size-4" />
+                    ) : (
+                      <ToggleRight className="size-4" />
+                    )}
+                    {user.isActive ? 'Suspend User' : 'Activate User'}
+                  </Button>
                 )}
-                {user.isActive ? 'Suspend User' : 'Activate User'}
-              </Button>
+              </ActionTooltip>
               {user.kycStatus !== 'not_submitted' && (
                 <Button
                   variant="outline"
@@ -785,14 +808,15 @@ export function CustomerDetailPage() {
                       >
                         <td className="px-4 py-3 font-mono text-[11px]">{msg.phoneNumber}</td>
                         <td className="px-4 py-3">
-                          <span
+                          <HelpBadge
+                            help={MESSAGE_STATUS_HELP[msg.status]}
                             className={cn(
                               'inline-flex rounded-full px-2 py-0.5 font-bold uppercase text-[9px]',
                               STATUS_BADGE[msg.status] ?? 'bg-gray-100 text-gray-600',
                             )}
                           >
                             {msg.status}
-                          </span>
+                          </HelpBadge>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {msg.otpTemplate ? (
@@ -869,14 +893,15 @@ export function CustomerDetailPage() {
                       <tr key={tx.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-4 py-3 font-medium">{tx.description}</td>
                         <td className="px-4 py-3">
-                          <span
+                          <HelpBadge
+                            help={TRANSACTION_TYPE_HELP[tx.type]}
                             className={cn(
                               'inline-flex rounded-full px-2 py-0.5 font-bold uppercase text-[9px]',
                               TRANSACTION_BADGE[tx.type] ?? 'bg-gray-100 text-gray-600',
                             )}
                           >
                             {tx.type}
-                          </span>
+                          </HelpBadge>
                         </td>
                         <td className={cn(
                           'px-4 py-3 text-right font-bold tabular-nums',
@@ -1004,16 +1029,26 @@ function StatCard({
   icon: Icon,
   label,
   value,
+  help,
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
+  help?: string;
 }) {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="size-3.5" />
-        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+        {help ? (
+          <HeaderTooltip
+            label={label}
+            help={help}
+            className="text-[10px] font-bold uppercase tracking-wider"
+          />
+        ) : (
+          <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+        )}
       </div>
       <p className="mt-1 text-lg font-bold tabular-nums">{value}</p>
     </div>
@@ -1039,14 +1074,12 @@ function InfoRow({
       <div className="min-w-0">
         <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">{label}</p>
         {isLink ? (
-          <a
+          <ExternalLink
             href={value}
-            target="_blank"
-            rel="noopener noreferrer"
             className="truncate text-sm text-primary hover:underline font-medium"
           >
             {value}
-          </a>
+          </ExternalLink>
         ) : (
           <p className={cn('text-sm font-medium', valueClassName)}>{value}</p>
         )}

@@ -17,6 +17,10 @@ import { TemplateDetailPage } from '@/pages/templates/template-detail';
 import { AffiliatePartnersPage } from '@/pages/affiliate/partners';
 import { AffiliatePayoutsPage } from '@/pages/affiliate/payouts';
 import { AffiliateSettingsPage } from '@/pages/affiliate/settings';
+import { LeadsPage } from '@/pages/leads';
+import { LeadDetailPage } from '@/pages/leads/detail';
+import { LeadSuppressionsPage } from '@/pages/leads/suppressions';
+import { LeadsPipelinePage } from '@/pages/leads/pipeline';
 import { ROUTES } from '@/lib/constants';
 
 export default function App() {
@@ -46,6 +50,13 @@ export default function App() {
           <Route path={ROUTES.AFFILIATE_PARTNERS} element={<AffiliatePartnersPage />} />
           <Route path={ROUTES.AFFILIATE_PAYOUTS} element={<AffiliatePayoutsPage />} />
           <Route path={ROUTES.AFFILIATE_SETTINGS} element={<AffiliateSettingsPage />} />
+          <Route path={ROUTES.LEADS} element={<LeadsPage />} />
+          {/* Declared before the :leadId route: react-router v7 already ranks
+              static segments above a param, but the order keeps that from
+              ever depending on ranking rules. */}
+          <Route path={ROUTES.LEAD_SUPPRESSIONS} element={<LeadSuppressionsPage />} />
+          <Route path={ROUTES.LEADS_PIPELINE} element={<LeadsPipelinePage />} />
+          <Route path={ROUTES.LEAD_DETAIL} element={<LeadDetailPage />} />
         </Route>
       </Route>
 

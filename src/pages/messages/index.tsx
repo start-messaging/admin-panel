@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { MessageSquare, Search } from 'lucide-react';
 import { searchMessages } from '@/apis/admin.api';
 import { Button } from '@/components/ui/button';
+import { HeaderTooltip } from '@/components/common/header-tooltip';
+import { HelpBadge } from '@/components/common/help-badge';
+import { MESSAGE_STATUS_HELP, MESSAGES_COLUMN_HELP } from '@/lib/help-copy';
 import { Pagination } from '@/components/ui/pagination';
 import { MessageDetailModal } from '@/pages/customers/message-detail-modal';
 import { ROUTES } from '@/lib/constants';
@@ -151,12 +154,16 @@ export function MessagesLookupPage() {
                   <tr className="border-b bg-muted/40 text-left text-muted-foreground">
                     <th className="px-4 py-2.5 font-semibold">Recipient</th>
                     <th className="px-4 py-2.5 font-semibold">Customer</th>
-                    <th className="px-4 py-2.5 font-semibold">Status</th>
+                    <th className="px-4 py-2.5 font-semibold">
+                      <HeaderTooltip label="Status" help={MESSAGES_COLUMN_HELP.status} />
+                    </th>
                     <th className="px-4 py-2.5 font-semibold">Template</th>
                     <th className="min-w-[220px] px-4 py-2.5 font-semibold">
                       Why it failed (provider)
                     </th>
-                    <th className="px-4 py-2.5 text-right font-semibold">Cost</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">
+                      <HeaderTooltip label="Cost" help={MESSAGES_COLUMN_HELP.cost} />
+                    </th>
                     <th className="px-4 py-2.5 font-semibold">Created At</th>
                   </tr>
                 </thead>
@@ -187,7 +194,8 @@ export function MessagesLookupPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span
+                        <HelpBadge
+                          help={MESSAGE_STATUS_HELP[msg.status]}
                           className={cn(
                             'inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase',
                             STATUS_BADGE[msg.status] ??
@@ -195,7 +203,7 @@ export function MessagesLookupPage() {
                           )}
                         >
                           {msg.status}
-                        </span>
+                        </HelpBadge>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {msg.otpTemplate?.name ?? (

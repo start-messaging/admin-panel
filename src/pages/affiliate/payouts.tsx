@@ -9,9 +9,16 @@ import {
   type PayoutStatus,
 } from '@/apis/affiliate.api';
 import { Button } from '@/components/ui/button';
+import { ActionTooltip } from '@/components/common/action-tooltip';
+import { HelpBadge } from '@/components/common/help-badge';
 import { Pagination } from '@/components/ui/pagination';
 import { enumParam, numberParam, useUrlFilters } from '@/hooks/useUrlFilters';
 import { getApiErrorMessage } from '@/lib/api-error';
+import {
+  PAYOUT_ACTION_HELP,
+  PAYOUT_META_HELP,
+  PAYOUT_STATUS_HELP,
+} from '@/lib/help-copy';
 import { cn } from '@/lib/utils';
 
 const STATUS_TABS = [
@@ -106,10 +113,18 @@ export function AffiliatePayoutsPage() {
                     <h3 className="font-semibold">
                       {p.partner ? `${p.partner.firstName} ${p.partner.lastName}` : p.partnerId}
                     </h3>
-                    <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', STATUS_STYLE[p.status])}>
+                    <HelpBadge
+                      help={PAYOUT_STATUS_HELP[p.status]}
+                      className={cn('rounded-full px-2 py-0.5 text-xs font-medium', STATUS_STYLE[p.status])}
+                    >
                       {p.status.replace('_', ' ')}
-                    </span>
-                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">{p.periodKey}</span>
+                    </HelpBadge>
+                    <HelpBadge
+                      help={PAYOUT_META_HELP.period}
+                      className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]"
+                    >
+                      {p.periodKey}
+                    </HelpBadge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {p.partner?.email} · {p.commissionCount.toLocaleString('en-IN')} entries ·{' '}
@@ -138,9 +153,13 @@ export function AffiliatePayoutsPage() {
                 <div className="flex flex-col items-end gap-2">
                   <p className="text-xl font-bold tabular-nums">{formatINR(Number(p.amount))}</p>
                   {(p.status === 'pending' || p.status === 'processing' || p.status === 'on_hold') && (
-                    <Button size="sm" onClick={() => setSettling(p)}>
-                      Record outcome
-                    </Button>
+                    <ActionTooltip help={PAYOUT_ACTION_HELP.recordOutcome} side="left">
+                      {(props) => (
+                        <Button {...props} size="sm" onClick={() => setSettling(p)}>
+                          Record outcome
+                        </Button>
+                      )}
+                    </ActionTooltip>
                   )}
                 </div>
               </div>
