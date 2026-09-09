@@ -12,6 +12,18 @@ function isApiErrorResponse(data: unknown): data is ApiErrorResponse {
   );
 }
 
+/**
+ * The machine-readable `error.code` from the server envelope, when there is
+ * one. Lets callers branch on specific failures (e.g. LEAD_SUPPRESSED) while
+ * `getApiErrorMessage` stays the generic fallback.
+ */
+export function getApiErrorCode(error: unknown): string | undefined {
+  if (error instanceof AxiosError && isApiErrorResponse(error.response?.data)) {
+    return error.response.data.error.code;
+  }
+  return undefined;
+}
+
 export function getApiErrorMessage(error: unknown): string {
   if (error instanceof AxiosError) {
     if (!error.response) {

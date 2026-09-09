@@ -1,0 +1,17 @@
+{
+  // Editor support only. Deliberately NOT referenced from the root
+  // tsconfig.json: `npm run build` (tsc -b) must keep building just the app,
+  // and Playwright transpiles these files itself at run time.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["./**/*.ts", "../src/lib/constants.ts"]
+}

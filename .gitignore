@@ -29,3 +29,13 @@ dist-ssr
 !.dev.vars.example
 .env*
 !.env.example
+.claude/memory/
+.claude/settings.local.json
+
+# Playwright e2e output
+/test-results/
+/playwright-report/
+
+# Worktrees Claude Code creates for parallel work — real branches,
+# but they live inside the checkout and must never be committed into it.
+.claude/worktrees/

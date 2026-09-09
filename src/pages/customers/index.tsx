@@ -20,7 +20,14 @@ import {
 } from '@/components/ui/tooltip';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { isoToDatetimeLocalValue } from '@/lib/datetime';
+import {
+  ACCOUNT_STATUS_HELP,
+  CUSTOMERS_COLUMN_HELP,
+  KYC_STATUS_HELP,
+} from '@/lib/help-copy';
 import { cn } from '@/lib/utils';
+import { HeaderTooltip } from '@/components/common/header-tooltip';
+import { HelpBadge } from '@/components/common/help-badge';
 import { Pagination } from '@/components/ui/pagination';
 import type { UserListSortBy } from '@/apis/admin.api';
 import { useAdminUsersList, useUpdateAdminUser } from '@/hooks/admin';
@@ -408,19 +415,19 @@ export function CustomersPage() {
                   Mobile
                 </th>
                 <th className="min-w-[88px] px-4 py-3 text-right font-medium text-muted-foreground">
-                  Balance
+                  <HeaderTooltip label="Balance" help={CUSTOMERS_COLUMN_HELP.balance} />
                 </th>
                 <th className="min-w-[100px] px-4 py-3 text-left font-medium text-muted-foreground">
-                  KYC
+                  <HeaderTooltip label="KYC" help={CUSTOMERS_COLUMN_HELP.kyc} />
                 </th>
                 <th className="min-w-[100px] px-4 py-3 text-left font-medium text-muted-foreground">
                   Status
                 </th>
                 <th className="min-w-[168px] px-4 py-3 text-left font-medium text-muted-foreground">
-                  Last called
+                  <HeaderTooltip label="Last called" help={CUSTOMERS_COLUMN_HELP.lastCalled} />
                 </th>
                 <th className="min-w-[248px] px-4 py-3 text-left font-medium text-muted-foreground">
-                  Notes
+                  <HeaderTooltip label="Notes" help={CUSTOMERS_COLUMN_HELP.notes} />
                 </th>
                 <th className="min-w-[88px] px-4 py-3 text-left font-medium text-muted-foreground">
                   Role
@@ -491,7 +498,8 @@ export function CustomersPage() {
                       {formatINR(user.walletBalance)}
                     </td>
                     <td className="min-w-[100px] px-4 py-3">
-                      <span
+                      <HelpBadge
+                        help={KYC_STATUS_HELP[user.kycStatus]}
                         className={cn(
                           'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
                           kyc.className,
@@ -499,10 +507,15 @@ export function CustomersPage() {
                       >
                         <KycIcon className="size-3" />
                         {kyc.label}
-                      </span>
+                      </HelpBadge>
                     </td>
                     <td className="min-w-[100px] px-4 py-3">
-                      <span
+                      <HelpBadge
+                        help={
+                          user.isActive
+                            ? ACCOUNT_STATUS_HELP.active
+                            : ACCOUNT_STATUS_HELP.suspended
+                        }
                         className={cn(
                           'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
                           user.isActive
@@ -517,7 +530,7 @@ export function CustomersPage() {
                           )}
                         />
                         {user.isActive ? 'Active' : 'Suspended'}
-                      </span>
+                      </HelpBadge>
                     </td>
                     <td className="min-w-[168px] whitespace-nowrap px-4 py-3 text-muted-foreground">
                       {user.adminLastCalledAt

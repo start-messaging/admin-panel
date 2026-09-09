@@ -33,4 +33,18 @@ export const adminQueryKeys = {
 
   dailyUsage: (filters: Record<string, unknown>) =>
     ['admin', 'daily-usage', filters] as const,
+
+  leadsList: (filters: Record<string, unknown>) =>
+    ['admin', 'leads', filters] as const,
+
+  leadStats: () => ['admin', 'lead-stats'] as const,
+
+  leadsPipeline: () => ['admin', 'leads-pipeline'] as const,
+
+  leadsSettings: () => ['admin', 'leads-settings'] as const,
+
+  leadDetail: (leadId: string) => ['admin', 'lead', leadId] as const,
+
+  leadSuppressions: (filters: Record<string, unknown>) =>
+    ['admin', 'lead-suppressions', filters] as const,
 } as const;

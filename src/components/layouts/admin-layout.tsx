@@ -13,26 +13,93 @@ import {
   Banknote,
   Settings,
   Wallet,
+  type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { ROUTES } from '@/lib/constants';
+import { NAV_HELP } from '@/lib/help-copy';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { to: ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-  { to: ROUTES.CUSTOMERS, label: 'Customers', icon: Users },
-  { to: ROUTES.MESSAGES, label: 'Number Lookup', icon: MessageSquare },
-  { to: ROUTES.TOPUP, label: 'Manual Top-up', icon: Wallet },
-  { to: ROUTES.KYC_REVIEW, label: 'KYC Reviews', icon: FileCheck },
-  { to: ROUTES.TEMPLATES, label: 'Templates', icon: FileText },
+  { to: ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard, help: NAV_HELP.dashboard },
+  { to: ROUTES.CUSTOMERS, label: 'Customers', icon: Users, help: NAV_HELP.customers },
+  { to: ROUTES.MESSAGES, label: 'Number Lookup', icon: MessageSquare, help: NAV_HELP.messages },
+  { to: ROUTES.TOPUP, label: 'Manual Top-up', icon: Wallet, help: NAV_HELP.topup },
+  { to: ROUTES.KYC_REVIEW, label: 'KYC Reviews', icon: FileCheck, help: NAV_HELP.kyc },
+  { to: ROUTES.TEMPLATES, label: 'Templates', icon: FileText, help: NAV_HELP.templates },
 ] as const;
 
 const AFFILIATE_NAV_ITEMS = [
-  { to: ROUTES.AFFILIATE_PARTNERS, label: 'Partners', icon: Handshake },
-  { to: ROUTES.AFFILIATE_PAYOUTS, label: 'Payouts', icon: Banknote },
-  { to: ROUTES.AFFILIATE_SETTINGS, label: 'Programme', icon: Settings },
+  { to: ROUTES.AFFILIATE_PARTNERS, label: 'Partners', icon: Handshake, help: NAV_HELP.affiliatePartners },
+  { to: ROUTES.AFFILIATE_PAYOUTS, label: 'Payouts', icon: Banknote, help: NAV_HELP.affiliatePayouts },
+  { to: ROUTES.AFFILIATE_SETTINGS, label: 'Programme', icon: Settings, help: NAV_HELP.affiliateSettings },
 ] as const;
+
+
+/**
+ * One nav entry, wrapped in a tooltip that says what the screen is for — a
+ * new admin can read the sidebar instead of clicking through it. The trigger
+ * IS the NavLink (base-ui merges its hover/focus handlers onto it), so
+ * keyboard navigation and the active-state styling behave exactly as before.
+ */
+function SidebarNavItem({
+  to,
+  label,
+  icon: Icon,
+  help,
+  end = false,
+  forceInactive = false,
+  onNavigate,
+}: {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  help: string;
+  end?: boolean;
+  /** For nested URLs that are their own view (see the Growth group). */
+  forceInactive?: boolean;
+  onNavigate: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={(props) => (
+          <NavLink
+            {...props}
+            to={to}
+            end={end}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                isActive && !forceInactive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+                props.className,
+              )
+            }
+          >
+            <Icon className="size-4" />
+            {label}
+          </NavLink>
+        )}
+      />
+      <TooltipContent
+        side="right"
+        sideOffset={10}
+        className="max-w-56 text-xs leading-relaxed"
+      >
+        {help}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -70,24 +137,13 @@ export function AdminLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === ROUTES.DASHBOARD}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-                )
-              }
-            >
-              <Icon className="size-4" />
-              {label}
-            </NavLink>
+          {NAV_ITEMS.map((item) => (
+            <SidebarNavItem
+              key={item.to}
+              {...item}
+              end={item.to === ROUTES.DASHBOARD}
+              onNavigate={() => setSidebarOpen(false)}
+            />
           ))}
 
           {/* Grouped separately: the affiliate programme is a distinct
@@ -96,24 +152,14 @@ export function AdminLayout() {
           <p className="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">
             Affiliate
           </p>
-          {AFFILIATE_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-                )
-              }
-            >
-              <Icon className="size-4" />
-              {label}
-            </NavLink>
+          {AFFILIATE_NAV_ITEMS.map((item) => (
+            <SidebarNavItem
+              key={item.to}
+              {...item}
+              onNavigate={() => setSidebarOpen(false)}
+            />
           ))}
+
         </nav>
 
         {/* User section */}

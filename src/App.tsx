@@ -46,6 +46,9 @@ export default function App() {
           <Route path={ROUTES.AFFILIATE_PARTNERS} element={<AffiliatePartnersPage />} />
           <Route path={ROUTES.AFFILIATE_PAYOUTS} element={<AffiliatePayoutsPage />} />
           <Route path={ROUTES.AFFILIATE_SETTINGS} element={<AffiliateSettingsPage />} />
+          {/* Declared before the :leadId route: react-router v7 already ranks
+              static segments above a param, but the order keeps that from
+              ever depending on ranking rules. */}
         </Route>
       </Route>
 

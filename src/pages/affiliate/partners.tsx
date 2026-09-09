@@ -12,9 +12,18 @@ import {
   type PartnerStatus,
 } from '@/apis/affiliate.api';
 import { Button } from '@/components/ui/button';
+import { ActionTooltip } from '@/components/common/action-tooltip';
+import { HeaderTooltip } from '@/components/common/header-tooltip';
+import { HelpBadge } from '@/components/common/help-badge';
 import { Pagination } from '@/components/ui/pagination';
 import { enumParam, numberParam, stringParam, useUrlFilters } from '@/hooks/useUrlFilters';
 import { getApiErrorMessage } from '@/lib/api-error';
+import {
+  AFFILIATE_STAT_HELP,
+  PARTNER_ACTION_HELP,
+  PARTNER_COLUMN_HELP,
+  PARTNER_STATUS_HELP,
+} from '@/lib/help-copy';
 import { cn } from '@/lib/utils';
 
 const STATUS_TABS = [
@@ -87,10 +96,27 @@ export function AffiliatePartnersPage() {
 
       {overview && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Active partners" value={String(overview.activePartners)} />
-          <Stat label="Awaiting approval" value={String(overview.pendingApplications)} highlight={overview.pendingApplications > 0} />
-          <Stat label="Owed to partners" value={formatINR(overview.totalAccrued)} />
-          <Stat label="Paid out to date" value={formatINR(overview.totalPaid)} />
+          <Stat
+            label="Active partners"
+            value={String(overview.activePartners)}
+            help={AFFILIATE_STAT_HELP.activePartners}
+          />
+          <Stat
+            label="Awaiting approval"
+            value={String(overview.pendingApplications)}
+            highlight={overview.pendingApplications > 0}
+            help={AFFILIATE_STAT_HELP.pendingApplications}
+          />
+          <Stat
+            label="Owed to partners"
+            value={formatINR(overview.totalAccrued)}
+            help={AFFILIATE_STAT_HELP.totalAccrued}
+          />
+          <Stat
+            label="Paid out to date"
+            value={formatINR(overview.totalPaid)}
+            help={AFFILIATE_STAT_HELP.totalPaid}
+          />
         </div>
       )}
 
@@ -142,11 +168,21 @@ export function AffiliatePartnersPage() {
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Partner</th>
-                  <th className="px-4 py-3 font-medium">Code</th>
-                  <th className="px-4 py-3 font-medium">Rate</th>
-                  <th className="px-4 py-3 text-right font-medium">Owed</th>
-                  <th className="px-4 py-3 text-right font-medium">Lifetime</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">
+                    <HeaderTooltip label="Code" help={PARTNER_COLUMN_HELP.code} />
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <HeaderTooltip label="Rate" help={PARTNER_COLUMN_HELP.rate} />
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium">
+                    <HeaderTooltip label="Owed" help={PARTNER_COLUMN_HELP.owed} />
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium">
+                    <HeaderTooltip label="Lifetime" help={PARTNER_COLUMN_HELP.lifetime} />
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <HeaderTooltip label="Status" help={PARTNER_COLUMN_HELP.status} />
+                  </th>
                   <th className="px-4 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -212,36 +248,59 @@ function PartnerRow({ partner, onEditRate }: { partner: AdminPartner; onEditRate
         {formatINR(Number(partner.lifetimeEarnings))}
       </td>
       <td className="px-4 py-3">
-        <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium capitalize', STATUS_STYLE[partner.status])}>
+        <HelpBadge
+          help={PARTNER_STATUS_HELP[partner.status]}
+          className={cn('rounded-full px-2 py-0.5 text-xs font-medium capitalize', STATUS_STYLE[partner.status])}
+        >
           {partner.status}
-        </span>
+        </HelpBadge>
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-wrap gap-1">
           {partner.status === 'pending' && (
             <>
-              <Button size="xs" onClick={() => mutation.mutate('active')} disabled={mutation.isPending}>
-                Approve
-              </Button>
-              <Button size="xs" variant="destructive" onClick={() => mutation.mutate('rejected')} disabled={mutation.isPending}>
-                Reject
-              </Button>
+              <ActionTooltip help={PARTNER_ACTION_HELP.approve}>
+                {(props) => (
+                  <Button {...props} size="xs" onClick={() => mutation.mutate('active')} disabled={mutation.isPending}>
+                    Approve
+                  </Button>
+                )}
+              </ActionTooltip>
+              <ActionTooltip help={PARTNER_ACTION_HELP.reject}>
+                {(props) => (
+                  <Button {...props} size="xs" variant="destructive" onClick={() => mutation.mutate('rejected')} disabled={mutation.isPending}>
+                    Reject
+                  </Button>
+                )}
+              </ActionTooltip>
             </>
           )}
           {partner.status === 'active' && (
-            <Button size="xs" variant="destructive" onClick={() => mutation.mutate('suspended')} disabled={mutation.isPending}>
-              Suspend
-            </Button>
+            <ActionTooltip help={PARTNER_ACTION_HELP.suspend}>
+              {(props) => (
+                <Button {...props} size="xs" variant="destructive" onClick={() => mutation.mutate('suspended')} disabled={mutation.isPending}>
+                  Suspend
+                </Button>
+              )}
+            </ActionTooltip>
           )}
           {partner.status === 'suspended' && (
-            <Button size="xs" onClick={() => mutation.mutate('active')} disabled={mutation.isPending}>
-              Reactivate
-            </Button>
+            <ActionTooltip help={PARTNER_ACTION_HELP.reactivate}>
+              {(props) => (
+                <Button {...props} size="xs" onClick={() => mutation.mutate('active')} disabled={mutation.isPending}>
+                  Reactivate
+                </Button>
+              )}
+            </ActionTooltip>
           )}
-          <Button size="xs" variant="outline" onClick={onEditRate}>
-            <Percent className="size-3" />
-            Rate
-          </Button>
+          <ActionTooltip help={PARTNER_ACTION_HELP.rate}>
+            {(props) => (
+              <Button {...props} size="xs" variant="outline" onClick={onEditRate}>
+                <Percent className="size-3" />
+                Rate
+              </Button>
+            )}
+          </ActionTooltip>
         </div>
       </td>
     </tr>
@@ -324,10 +383,22 @@ function CommissionModal({ partner, onClose }: { partner: AdminPartner; onClose:
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Stat({
+  label,
+  value,
+  highlight,
+  help,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+  help?: string;
+}) {
   return (
     <div className={cn('rounded-xl border bg-card p-4', highlight && 'border-amber-300 bg-amber-50/50')}>
-      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        {help ? <HeaderTooltip label={label} help={help} /> : label}
+      </p>
       <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
     </div>
   );
