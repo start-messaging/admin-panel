@@ -22,15 +22,18 @@ test('visiting /leads without a token lands on /sign-in', async ({ page }) => {
   ).toBeVisible();
 });
 
-test('with an injected token /leads renders past the guard', async ({
+test('with an injected token /customers renders past the guard', async ({
   page,
 }) => {
   await signInAs(page, token);
-  await page.goto('/leads');
+  await page.goto('/customers');
 
   // The guard's pass is real, not mocked: ProtectedRoute only renders the
   // outlet after /users/me answers with role admin for this token.
-  await expect(page.getByRole('heading', { name: 'Leads' })).toBeVisible();
-  await expect(page.getByText('No leads found')).toBeVisible();
-  await expect(page).toHaveURL(/\/leads$/);
+  //
+  // The subject used to be /leads. That page left with the growth pipeline, and
+  // this test is about the GUARD rather than about any one screen — so it now
+  // asserts on Customers, which is the page an admin lands on anyway.
+  await expect(page.getByRole('heading', { name: 'Customers' })).toBeVisible();
+  await expect(page).toHaveURL(/\/customers$/);
 });
