@@ -21,6 +21,7 @@ import { ActionTooltip } from '@/components/common/action-tooltip';
 import { ExternalLink } from '@/components/common/external-link';
 import { HelpBadge } from '@/components/common/help-badge';
 import { KYC_ACTION_HELP, KYC_STATUS_HELP } from '@/lib/help-copy';
+import { API_BASE_URL } from '@/lib/api-base';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { ROUTES, STORAGE_KEYS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -55,9 +56,8 @@ export function KycDetailPage() {
     },
   });
 
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const documentApiUrl = user?.kycDocumentPath
-    ? `${apiBase}/admin/kyc/${user.id}/document`
+    ? `${API_BASE_URL}/admin/kyc/${user.id}/document`
     : null;
   const isImage =
     user?.kycDocumentPath && /\.(jpg|jpeg|png|webp)$/i.test(user.kycDocumentPath);

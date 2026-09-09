@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
   LogOut,
   LayoutDashboard,
@@ -13,9 +13,6 @@ import {
   Banknote,
   Settings,
   Wallet,
-  Target,
-  MailX,
-  Workflow,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,11 +41,6 @@ const AFFILIATE_NAV_ITEMS = [
   { to: ROUTES.AFFILIATE_SETTINGS, label: 'Programme', icon: Settings, help: NAV_HELP.affiliateSettings },
 ] as const;
 
-const GROWTH_NAV_ITEMS = [
-  { to: ROUTES.LEADS, label: 'Leads', icon: Target, help: NAV_HELP.leads },
-  { to: ROUTES.LEADS_PIPELINE, label: 'Pipeline', icon: Workflow, help: NAV_HELP.pipeline },
-  { to: ROUTES.LEAD_SUPPRESSIONS, label: 'Suppressions', icon: MailX, help: NAV_HELP.suppressions },
-] as const;
 
 /**
  * One nav entry, wrapped in a tooltip that says what the screen is for — a
@@ -111,7 +103,6 @@ function SidebarNavItem({
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
-  const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -169,28 +160,6 @@ export function AdminLayout() {
             />
           ))}
 
-          {/* Grouped separately: acquisition tooling (cold outreach to newly
-              registered domains) is a different job from operating existing
-              customers, and "Leads" sitting next to "Customers" would read
-              like another account list. */}
-          <p className="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">
-            Growth
-          </p>
-          {GROWTH_NAV_ITEMS.map((item) => (
-            <SidebarNavItem
-              key={item.to}
-              {...item}
-              // "/leads/suppressions" and "/leads/pipeline" nest under
-              // "/leads" in the URL but are their own views; without this two
-              // items light up at once.
-              forceInactive={
-                item.to === ROUTES.LEADS &&
-                (pathname.startsWith(ROUTES.LEAD_SUPPRESSIONS) ||
-                  pathname.startsWith(ROUTES.LEADS_PIPELINE))
-              }
-              onNavigate={() => setSidebarOpen(false)}
-            />
-          ))}
         </nav>
 
         {/* User section */}

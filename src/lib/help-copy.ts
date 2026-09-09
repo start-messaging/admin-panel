@@ -1,12 +1,3 @@
-import type {
-  LeadEnrichment,
-  LeadIngestRun,
-  LeadLiveness,
-  LeadOutreachEvent,
-  LeadStatus,
-  QualificationSignal,
-  SuppressionReason,
-} from '@/apis/leads.api';
 import type { PartnerStatus, PayoutStatus } from '@/apis/affiliate.api';
 import type { KycStatus, TemplateStatus } from '@/types';
 
@@ -72,15 +63,6 @@ export const LEADS_COLUMN_HELP = {
     '.in domains and India-named/India-evidenced sites are India; everything else stays "Not sure" until the crawler finds Indian markers (+91 numbers, GSTIN, Indian payment rails) — there is deliberately no "not India".',
 } as const;
 
-export const SIGNAL_HELP: Record<QualificationSignal, string> = {
-  payments:
-    'A Razorpay/Paytm/PayU/Cashfree/PhonePe checkout script is on the site — a verified integration, not a text mention.',
-  auth: 'A real password field or login form exists on the site.',
-  ecommerce: 'Shopify/WooCommerce assets or a cart flow detected.',
-  whatsapp: 'The site links a wa.me number.',
-  mobile_app: 'The site links a Play Store / App Store app.',
-};
-
 export const LEADS_STAT_HELP = {
   total: 'Every lead ever imported from the registration feed, whatever its current state.',
   withContact: 'Leads where the crawler found at least one email, phone or WhatsApp number.',
@@ -92,56 +74,6 @@ export const LEADS_STAT_HELP = {
   contacted: 'Leads whose cold email has actually been sent.',
   replied: 'Leads that wrote back — the strongest signal in the funnel.',
 } as const;
-
-export const LEAD_STATUS_HELP: Record<LeadStatus, string> = {
-  new: 'Never contacted. The only state outreach can be queued from.',
-  queued:
-    'Claimed for sending. The send happens immediately, so this normally becomes "contacted" within seconds — if it lingers, the provider errored.',
-  contacted: 'The cold email has been sent. Waiting on them now.',
-  replied: 'They wrote back — check the mailbox and take it from here.',
-  converted: 'Became a customer. The reason this pipeline exists.',
-  unsubscribed:
-    'They opted out. Never contact again — the suppression list enforces it.',
-  bounced:
-    "The mailbox doesn't exist or rejected us. Never contact again — the suppression list enforces it.",
-  disqualified:
-    "Delisted by the team: every sweep — probing, crawling, outreach — skips it. The row is kept so tomorrow's import can't re-add the domain. Reversible via \"Re-list\".",
-};
-
-export const LEAD_LIVENESS_HELP: Record<LeadLiveness, string> = {
-  unknown: 'Never probed yet — the liveness sweep will get to it.',
-  live: 'The site answered the last probe — the enrichment crawler may spend on it.',
-  inactive:
-    'No DNS or no HTTP answer at the last probe. Not a verdict: re-probed on a backoff (daily for young domains, then weekly, then monthly) to catch a late launch.',
-};
-
-export const LEAD_ENRICHMENT_HELP: Record<LeadEnrichment, string> = {
-  pending: 'Not crawled yet — the automatic sweep retries every 15 minutes until attempts run out.',
-  enriched: 'The crawl succeeded and found contact info on the site.',
-  no_contact: 'The site is up, but publishes no email or phone we could find.',
-  parked:
-    "The domain shows a registrar parking page — no real website yet. Contacts and signals are zeroed (the page's content belongs to the registrar, not the business). Re-checked weekly to catch the site's launch.",
-  failed:
-    'Unreachable after the configured number of attempts. "Re-enrich" on the detail page tries again by hand.',
-};
-
-export const LEAD_EVENT_HELP: Record<LeadOutreachEvent['type'], string> = {
-  queued: 'The cold email was claimed for sending.',
-  sent: 'The provider dispatched the email. Each of these counts against the daily cap.',
-  opened:
-    'The tracking image loaded. Apple/Gmail privacy proxies prefetch it, so opens overcount — trust clicks and replies.',
-  clicked: 'A link in the email was followed — a real signal of interest.',
-  replied: 'They answered the email.',
-  bounced: 'The mailbox rejected the email; the address goes on the suppression list.',
-  unsubscribed: 'They clicked opt-out; the address goes on the suppression list automatically.',
-  failed: 'The provider could not send; the lead returned to "new" so it can be retried.',
-};
-
-export const INGEST_RUN_STATUS_HELP: Record<LeadIngestRun['status'], string> = {
-  pending: 'The ingest job is queued or still running.',
-  completed: 'The feed for this date was processed. Completed days are never re-imported.',
-  failed: 'The run errored — the message next to the badge says why. Failed days are retried.',
-};
 
 export const LEADS_ACTION_HELP = {
   runIngest:
@@ -239,13 +171,6 @@ export const SUPPRESSIONS_COLUMN_HELP = {
     'An address we must never mail again. The send path checks this list before every outreach email, whatever the lead record says.',
   reason: 'Why the address is blocked. Hover a badge for what each reason means.',
 } as const;
-
-export const SUPPRESSION_REASON_HELP: Record<SuppressionReason, string> = {
-  unsubscribed: 'They clicked the opt-out link in an email — added automatically.',
-  bounced: "The mailbox doesn't exist — sends to it can only hurt our sender reputation.",
-  complaint: 'They reported an email as spam.',
-  manual: 'A team member added it by hand.',
-};
 
 export const SUPPRESSION_FIELD_HELP = {
   reason:
