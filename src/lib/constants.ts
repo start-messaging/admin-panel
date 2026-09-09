@@ -17,8 +17,4 @@ export const ROUTES = {
   AFFILIATE_PARTNERS: '/affiliate/partners',
   AFFILIATE_PAYOUTS: '/affiliate/payouts',
   AFFILIATE_SETTINGS: '/affiliate/settings',
-  LEADS: '/leads',
-  LEAD_SUPPRESSIONS: '/leads/suppressions',
-  LEADS_PIPELINE: '/leads/pipeline',
-  LEAD_DETAIL: '/leads/:leadId',
 } as const;

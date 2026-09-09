@@ -30,50 +30,11 @@ export const NAV_HELP = {
   affiliatePartners: 'Partner programme: applications, accounts and commission rates.',
   affiliatePayouts: 'Monthly commission payouts to partners — send the money, record the outcome.',
   affiliateSettings: 'Programme-wide affiliate settings: rates, minimums, payout day.',
-  leads: 'Newly registered Indian businesses to prospect — the cold-outreach queue.',
   pipeline:
     'The machinery behind Leads: cron schedules, queue depth, and the jobs currently running or failed — with rerun buttons.',
-  suppressions: 'Opt-outs and bounces we must never email again.',
 } as const;
 
 // ── Leads ──────────────────────────────────────────────
-
-export const LEADS_COLUMN_HELP = {
-  domain:
-    "The business's website, found in the daily feed of newly registered domains. Click the name for the lead's detail page; the small icon opens the live site in a new tab.",
-  signals:
-    'How many signals the crawler VERIFIED on the site (0–5): a payment checkout script, a real login form, ecommerce assets, a WhatsApp link, an app-store link. Structural evidence, never text mentions — the detail page shows which. Sort descending to work the best prospects first.',
-  registered:
-    'The date the domain appeared in the registration feed — i.e. when the business registered it.',
-  liveness:
-    'Whether the domain answers at all — DNS plus one page fetch. The crawler only spends on live sites; inactive ones are re-probed on a backoff (daily, then weekly, then monthly) so a late launch is still caught.',
-  enrichment:
-    'Whether our crawler has visited the site yet, and what it found. Hover a badge for what each state means.',
-  contacts:
-    'Emails, phone numbers and WhatsApp numbers the crawler extracted from the site.',
-  status:
-    'Where the lead sits in the outreach funnel: new → contacted → replied/converted; unsubscribed/bounced are enforced by suppressions; disqualified = delisted. The table hides this column (most rows say "new") — filter by it instead, and the detail page shows the badge.',
-  lastCrawled:
-    "When the crawler last read the site. Hover a value for the absolute time and the last liveness probe — 'never' means enrichment hasn't reached it yet.",
-  rating:
-    "Your team's own 1–5 judgment after looking at the site — the machine collects evidence; people rate. Set it from the lead's detail page.",
-  added:
-    'When we imported the lead. Registered (left) is when the business created the domain.',
-  country:
-    '.in domains and India-named/India-evidenced sites are India; everything else stays "Not sure" until the crawler finds Indian markers (+91 numbers, GSTIN, Indian payment rails) — there is deliberately no "not India".',
-} as const;
-
-export const LEADS_STAT_HELP = {
-  total: 'Every lead ever imported from the registration feed, whatever its current state.',
-  withContact: 'Leads where the crawler found at least one email, phone or WhatsApp number.',
-  india:
-    'Leads confirmed India: a .in/.co.in domain or Indian markers on the site. The rest are "not sure", never "not India".',
-  live: 'Domains that answered their last liveness probe — the pool the crawler actually works.',
-  queued:
-    'Leads mid-send. Sends complete immediately, so anything sitting here for long likely hit a provider error.',
-  contacted: 'Leads whose cold email has actually been sent.',
-  replied: 'Leads that wrote back — the strongest signal in the funnel.',
-} as const;
 
 export const LEADS_ACTION_HELP = {
   runIngest:
@@ -115,54 +76,6 @@ export const LEADS_DETAIL_HELP = {
 } as const;
 
 // ── Pipeline ───────────────────────────────────────────
-
-export const PIPELINE_HELP = {
-  crons: {
-    'leads-nrd-sweep':
-      "Downloads each day's newly-registered-domains file and imports the matches. Completed days short-circuit and domains dedupe, so reruns are free.",
-    'leads-liveness-sweep':
-      'Checks which imported domains actually answer — DNS plus one quick page fetch. Dead domains are re-checked on a backoff (daily for two weeks, then weekly, then monthly) so a late launch is still caught.',
-    'leads-enrich-sweep':
-      'Crawls eligible leads in a continuous drain — it runs until nothing is eligible, then stops. A 5-minute kick starts a new drain whenever fresh work appears.',
-  } as Record<string, string>,
-  gates: {
-    'leads-nrd-sweep':
-      'Follows the Auto-run switch in Settings below — flip it there and it applies within seconds, no deploy. "Run now" works regardless: an explicit click is its own authorization.',
-    'leads-liveness-sweep':
-      'Follows the Auto-run switch in Settings below — flip it there and it applies within seconds, no deploy. "Run now" works regardless: an explicit click is its own authorization.',
-    'leads-enrich-sweep':
-      'Follows the Auto-run switch in Settings below. Switching off stops even a drain already running within seconds. "Run now" works regardless.',
-  } as Record<string, string>,
-  counts:
-    'Queue depth right now: waiting/delayed are backlogs, active is in-flight, failed wants a look. Blank means Redis is briefly unreachable — the queue itself is likely fine.',
-  runNow:
-    'Always safe: ingest days are idempotent and the sweeps just claim whatever is due.',
-  crawler: {
-    card:
-      "The enrichment drain's live state: what it is doing, what it will do (the order book), and what it did.",
-    pendingLive: 'Live sites never crawled — first in line for the drain.',
-    staleRecrawl:
-      'Crawled leads older than the re-crawl window — due to be swapped through the drain again.',
-    parkedRecheckDue:
-      'Parked domains due their periodic recheck, to catch the site finally launching.',
-    crawledLast24h:
-      "Crawls completed in the last 24 hours — the drain's actual throughput, not a projection.",
-  },
-  settings: {
-    card:
-      'The pipeline is operated from here: every switch and number is stored in the database and applies live within seconds — no deploy, no restart. What you see is what runs.',
-    ingestEnabled:
-      'Auto-run for the daily domain import. Off = nothing imports on its own; "Run now" still works.',
-    livenessEnabled:
-      'Auto-run for the hourly liveness probe. Off = no automatic probing; "Run now" still works.',
-    enrichEnabled:
-      'Auto-run for the crawler drain. Switching off stops even a drain already running within seconds. "Run now" still works.',
-    batchPerSweep: 'Leads the drain claims per slice (1–10,000).',
-    concurrency: 'Parallel crawls in flight (1–20).',
-    recrawlHours:
-      'The swap cycle: how stale a crawled lead may get before it re-enters the drain (1–8,760 hours).',
-  },
-} as const;
 
 // ── Suppressions ───────────────────────────────────────
 
