@@ -7,7 +7,7 @@ import { API_ENV, API_URL, APP_PORT, APP_URL } from './helpers/test-env';
 /**
  * Browser-level e2e suite: real Chromium against the built admin panel
  * (vite preview on 4174) talking to the real compiled API (3020) over the
- * shared sm_test database. Run with `npm run test:e2e` — and not alongside the
+ * shared startmessaging_test database. Run with `npm run test:e2e` — and not alongside the
  * server or dashboard e2e suites, which truncate the same database.
  */
 

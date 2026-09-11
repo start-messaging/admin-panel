@@ -10,7 +10,7 @@
  * preview on 4174, Redis logical DB 12. 3000/3005/3010/3021/5173/5174/5175/
  * 4173 belong to other environments — never reuse them here.
  *
- * Postgres is the exception: `sm_test` is shared with the server API e2e suite
+ * Postgres is the exception: `startmessaging_test` is shared with the server API e2e suite
  * and the dashboard e2e suite. Every spec truncates it, so those suites cannot
  * run concurrently with this one — run them one at a time.
  */
@@ -24,7 +24,7 @@ export const APP_URL = `http://localhost:${APP_PORT}`;
 export const DB = {
   host: '127.0.0.1',
   port: 5432,
-  name: 'sm_test',
+  name: 'startmessaging_test',
   username: 'postgres',
   password: 'postgres',
 } as const;
