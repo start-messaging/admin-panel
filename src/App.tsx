@@ -9,6 +9,7 @@ import { CustomersPage } from '@/pages/customers';
 import { MessagesLookupPage } from '@/pages/messages';
 import { TopupPage } from '@/pages/topup';
 import { CustomerDetailPage } from '@/pages/customers/customer-detail';
+import { SignupsPage } from '@/pages/signups';
 import { KycReviewPage } from '@/pages/kyc-review';
 import { KycDetailPage } from '@/pages/kyc-review/kyc-detail';
 import { TemplatesPage } from '@/pages/templates';
@@ -36,6 +37,7 @@ export default function App() {
           <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
           <Route path={ROUTES.CUSTOMERS} element={<CustomersPage />} />
           <Route path={ROUTES.CUSTOMER_DETAIL} element={<CustomerDetailPage />} />
+          <Route path={ROUTES.SIGNUPS} element={<SignupsPage />} />
           <Route path={ROUTES.MESSAGES} element={<MessagesLookupPage />} />
           <Route path={ROUTES.TOPUP} element={<TopupPage />} />
           <Route path={ROUTES.KYC_REVIEW} element={<KycReviewPage />} />

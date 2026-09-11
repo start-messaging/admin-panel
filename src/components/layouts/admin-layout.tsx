@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import {
   LogOut,
   LayoutDashboard,
+  ChartLine,
   FileCheck,
   FileText,
   Users,
@@ -29,6 +30,10 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { to: ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard, help: NAV_HELP.dashboard },
   { to: ROUTES.CUSTOMERS, label: 'Customers', icon: Users, help: NAV_HELP.customers },
+  // Next to Customers rather than in a group of its own: it reports on the
+  // same accounts that list manages, and the calling queue on it is worked
+  // by clicking straight through into that list.
+  { to: ROUTES.SIGNUPS, label: 'Signups', icon: ChartLine, help: NAV_HELP.signups },
   { to: ROUTES.MESSAGES, label: 'Number Lookup', icon: MessageSquare, help: NAV_HELP.messages },
   { to: ROUTES.TOPUP, label: 'Manual Top-up', icon: Wallet, help: NAV_HELP.topup },
   { to: ROUTES.KYC_REVIEW, label: 'KYC Reviews', icon: FileCheck, help: NAV_HELP.kyc },

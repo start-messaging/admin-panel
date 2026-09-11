@@ -23,6 +23,8 @@ import type { KycStatus, TemplateStatus } from '@/types';
 export const NAV_HELP = {
   dashboard: 'Platform-wide numbers: signups, messages, revenue and the KYC queue.',
   customers: 'Every customer account — wallets, KYC state, call notes.',
+  signups:
+    'Signups over time, where they stall in verification, who the team called and what they wrote, and which reminder emails went out.',
   messages: 'Every OTP/SMS the platform has sent — search by phone number.',
   topup: "Credit a customer's wallet by email. Immediate, and logged against your admin account.",
   kyc: "Approve or reject customers' identity documents.",
@@ -262,4 +264,110 @@ export const DASHBOARD_USAGE_COLUMN_HELP = {
   failed: 'Messages that failed on the selected day (IST).',
   totalSpent:
     "The cost of that day's delivered messages only — failed sends are never charged, so they add nothing here.",
+} as const;
+
+// ── Signups & onboarding ───────────────────────────────
+
+export const SIGNUPS_SECTION_HELP = {
+  window:
+    'Both dates are IST calendar days and the end date counts in full. Leave them empty for the last 30 IST days. Everything on this screen except the call notes list follows this window.',
+  granularity:
+    'Bucket width for the graph. A range wider than 400 buckets is refused, so switch to weeks for anything longer than about a year.',
+  graph:
+    'Customer signups per bucket, IST. Zero-filled: a day with no signups is a point at zero, not a gap in the line — which is the difference this screen was built to show.',
+  funnel:
+    'Each stage counts accounts that cleared it AND every stage before it, so the bars can only descend. Scoped to accounts that signed up inside the window.',
+  calling:
+    'How much of this window the calling team has actually reached, and what they wrote down. Coverage is measured on the call timestamp, never on the note.',
+  notes:
+    'Every account the calling team has touched — a logged call OR a note. All-time, not limited to the window above: the API filters these by when the call happened, not by when the account signed up.',
+  email:
+    'Onboarding reminder emails, counted by when the mail went out rather than by when its recipient signed up — a day-7 nudge for a June signup is a July send.',
+} as const;
+
+export const SIGNUPS_STAT_HELP = {
+  totalSignups:
+    'Customer accounts created inside the window. Admin and referrer accounts are excluded throughout this screen — staff logins never signed up for anything.',
+  busiest: 'The single bucket with the most signups in this window.',
+  customersAllTime:
+    'Every customer account ever created, ignoring the window. Useful as a sanity check when the window is empty.',
+  dataRange:
+    'The oldest and newest customer signup in the database. If the window sits outside this range it will legitimately be empty.',
+} as const;
+
+export const FUNNEL_STAGE_HELP: Record<string, string> = {
+  signed_up: 'A customer account was created. The cohort every other stage is measured against.',
+  mobile_verified: 'Signed up AND confirmed their mobile number by OTP.',
+  kyc_submitted: 'Mobile verified AND uploaded identity documents for review.',
+  kyc_approved:
+    'KYC submitted AND approved by an admin. Approval is what unlocks API keys and sending, so this is the first stage where the account can do anything.',
+  first_message: 'Approved AND has sent at least one message. The only stage that means the account is genuinely live.',
+} as const;
+
+export const FUNNEL_COLUMN_HELP = {
+  reached:
+    'Accounts that cleared this stage and every stage before it. Monotone by construction, which is why it can never exceed the row above.',
+  matched:
+    "Accounts matching this stage's own condition, ignoring the earlier gates. Shown only where the two disagree — an approved account whose mobile was never marked verified counts here but not under Reached.",
+  lost: 'Accounts that reached the stage above this one but not this one.',
+  fromPrevious: 'Reached here as a share of the stage above.',
+  fromSignup: 'Reached here as a share of everyone who signed up in this window.',
+} as const;
+
+export const CALLING_STAT_HELP = {
+  coverage:
+    'Accounts with a logged call, as a share of signups in the window. Measured on the call timestamp, never on the note: an account can be called without being written up, and counting notes instead silently drops every one of those calls.',
+  called: 'Signups in this window carrying a call timestamp.',
+  uncalled: 'Signups in this window with no call ever logged. Opens the customer list ordered so never-called accounts come first.',
+  withNotes: 'Signups in this window carrying a written note.',
+  noteRate:
+    'Of the calls logged in this window, how many have a note written against them. The rest are the "called, not written up" queue below.',
+  staleDays: 'Days since the most recent call logged against this window.',
+  notedWithoutCall:
+    'Accounts with a note but no call timestamp. Coverage is measured on the timestamp, so anything above zero means coverage is an undercount — and that a note was saved without a date.',
+  selfReported:
+    'The call timestamp is whatever an admin set on the account by hand, including a backdated one. It records that somebody said a call happened, not that one was observed.',
+} as const;
+
+export const NOTES_COLUMN_HELP = {
+  calledAt: 'When an admin says the last call happened. Self-reported and editable from the customer list.',
+  note: 'What the caller wrote. Shown in full — the founder asked to read these, not to count them.',
+  state: 'Where this account currently sits in verification. Live state, not its state at the time of the call.',
+} as const;
+
+export const NOTES_SCOPE_HELP = {
+  all: 'Every account the team has touched: a logged call or a note.',
+  true: 'Only accounts with a written note.',
+  false: 'Called, never written up — the follow-up worklist.',
+} as const;
+
+export const EMAIL_STAT_HELP = {
+  totalSent: 'Reminder emails the provider accepted in this window.',
+  totalRows:
+    'Reminder rows written in this window, whatever became of them. A row is created before the send, so this counts the failures and the still-pending ones too.',
+  pending: 'Claimed by a sweep; the send has not resolved yet.',
+  failed: 'The send was attempted and did not go out. Each row keeps its last error and is retried up to three times.',
+  byStage: 'Which nudge went out: the day-2 one or the final day-7 one.',
+  byBlockedStep: 'What the mail was about — the step the customer still had not completed when it was sent.',
+  catalogue:
+    'Every reminder variant this system can put in an inbox, read from the same function that composes the mail — so the wording here cannot drift from what a customer actually received.',
+} as const;
+
+export const REMINDER_STAGE_HELP: Record<string, string> = {
+  day_2: 'The 24-48 hour nudge, sent to accounts that stalled just after signing up.',
+  day_7: 'The 7-8 day nudge. The last reminder we ever send to an account.',
+} as const;
+
+export const REMINDER_STEP_HELP: Record<string, string> = {
+  mobile_verification: 'The customer never confirmed their mobile number by OTP.',
+  kyc_submission: 'Mobile confirmed, but no identity documents were ever uploaded.',
+  kyc_resubmission: 'Documents were uploaded and rejected, and nothing has been resubmitted.',
+  unknown:
+    'The stored row carries a step this build does not recognise, so the copy it used cannot be named with confidence.',
+} as const;
+
+export const REMINDER_STATUS_HELP: Record<string, string> = {
+  sent: 'Handed to the email provider, which accepted it.',
+  pending: 'A row was claimed by the sweep but the send has not resolved yet.',
+  failed: 'The send was attempted and rejected. The row keeps the provider error.',
 } as const;

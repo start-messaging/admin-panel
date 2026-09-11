@@ -6,3 +6,9 @@ export { useAdminCustomerMessages } from './useAdminCustomerMessages';
 export { useAdminCustomerTransactions } from './useAdminCustomerTransactions';
 export { useAdminCustomerApiKeys } from './useAdminCustomerApiKeys';
 export { useUpdateAdminUser } from './useUpdateAdminUser';
+export { useAdminGrowth, GROWTH_GRANULARITIES } from './useAdminGrowth';
+export {
+  useAdminGrowthNotes,
+  NOTES_SCOPE_OPTIONS,
+  type NotesScope,
+} from './useAdminGrowthNotes';

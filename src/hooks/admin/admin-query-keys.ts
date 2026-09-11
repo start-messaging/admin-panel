@@ -34,6 +34,12 @@ export const adminQueryKeys = {
   dailyUsage: (filters: Record<string, unknown>) =>
     ['admin', 'daily-usage', filters] as const,
 
+  growth: (filters: Record<string, unknown>) =>
+    ['admin', 'growth', filters] as const,
+
+  growthNotes: (filters: Record<string, unknown>) =>
+    ['admin', 'growth-notes', filters] as const,
+
 
 
 

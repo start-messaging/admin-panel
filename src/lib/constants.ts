@@ -7,6 +7,13 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   CUSTOMERS: '/customers',
   CUSTOMER_DETAIL: '/customers/:userId',
+  /**
+   * Deliberately not `/growth`, even though it is served by `/admin/growth`.
+   * The panel had a GROWTH nav group (leads, outreach, pipeline) that was
+   * removed; reusing the word here would make a customer-operations screen
+   * read like that cold-outreach surface coming back.
+   */
+  SIGNUPS: '/signups',
   MESSAGES: '/messages',
   TOPUP: '/topup',
   KYC_REVIEW: '/kyc-review',
