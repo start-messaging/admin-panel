@@ -2,9 +2,13 @@ import * as Sentry from '@sentry/react';
 import { deploymentEnvironment } from '@/lib/deployment-environment';
 
 /**
- * Errors-only Sentry. No tracing and no replay integrations — PostHog owns
- * session replay here, and running both recorders would double the payload on
- * every page for no extra signal.
+ * Errors-only Sentry. No tracing, and no replay integration either.
+ *
+ * Replay is refused on this app specifically, not merely left off: these screens
+ * render customer PAN numbers and KYC documents as page text, so a recording of
+ * them is a store of customer identity documents, and input masking does not
+ * touch text the page renders. Product analytics is absent here for related
+ * reasons — see main.tsx.
  *
  * PRODUCTION ONLY, and enforced on the hostname rather than on the DSN simply
  * being absent elsewhere. The DSN is inlined at build time, so "staging just

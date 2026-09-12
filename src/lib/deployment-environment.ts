@@ -12,11 +12,10 @@
  * apart — which is exactly why Sentry's `environment` was wrong before this
  * existed.
  *
- * Two consumers read this, and they want opposite things from it:
- *   - PostHog stamps it onto every event, so one project can serve every
- *     environment without the data blending (main.tsx).
- *   - Sentry refuses to initialise unless it returns 'production'
- *     (instrument.ts).
+ * Sentry is the only consumer in this app: it refuses to initialise unless this
+ * returns 'production' (instrument.ts). The sibling dashboard also stamps the
+ * value onto every PostHog event, which is why the reasoning above is about a
+ * variable — this panel deliberately sends no product analytics at all.
  *
  * `stage-` is tested before the production suffix on purpose. The staging hosts
  * are stage-admin/stage-app.startmessaging.com, so they also end in

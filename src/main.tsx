@@ -6,11 +6,8 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import posthog from 'posthog-js';
-import { PostHogProvider } from '@posthog/react';
 import { Toaster } from 'sonner';
 import { queryClient } from '@/lib/query-client';
-import { deploymentEnvironment } from '@/lib/deployment-environment';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/common/error-boundary';
 import App from './App';
@@ -18,47 +15,31 @@ import './index.css';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-// No key (local dev, CI) = analytics off. The provider still gets the client
-// below — an uninitialised PostHog instance just no-ops every call, which is
-// exactly the behaviour we want instead of a second code path.
-if (import.meta.env.VITE_POSTHOG_KEY) {
-  posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
-    defaults: '2025-05-24',
-    person_profiles: 'identified_only',
-    // Admin sessions are recorded in full by design ("record session
-    // complete") — masking inputs keeps customer PII typed into forms
-    // (emails, PAN numbers) out of the recordings.
-    session_recording: { maskAllInputs: true },
-    // Stamped here rather than registered as a super property: `before_send`
-    // runs for every event, the session's first $pageview included, so there is
-    // no window in which an event is filed with no environment on it.
-    before_send: (event) => {
-      if (event) {
-        event.properties.environment = deploymentEnvironment(
-          window.location.hostname,
-        );
-      }
-      return event;
-    },
-  });
-}
+// No product analytics in this app, deliberately.
+//
+// PostHog covers the two customer-facing surfaces — app.startmessaging.com and
+// startmessaging.com — and nothing else. Staff traffic was actively harmful in
+// there: an admin paging through the customer list produced $pageviews
+// indistinguishable from real product usage, so every funnel and active-user
+// number was inflated by our own back-office work. Replays of these screens were
+// worse, since they render customer PAN and KYC documents as text, which no
+// amount of input masking covers.
+//
+// Error reporting is separate and stays — see instrument.ts.
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PostHogProvider client={posthog}>
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider delay={200} closeDelay={0}>
-            <ErrorBoundary>
-              <BrowserRouter>
-                <App />
-                <Toaster richColors position="top-right" />
-              </BrowserRouter>
-            </ErrorBoundary>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </GoogleOAuthProvider>
-    </PostHogProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider delay={200} closeDelay={0}>
+          <ErrorBoundary>
+            <BrowserRouter>
+              <App />
+              <Toaster richColors position="top-right" />
+            </BrowserRouter>
+          </ErrorBoundary>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   </StrictMode>,
 );

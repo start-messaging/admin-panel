@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
-import posthog from 'posthog-js';
 import * as Sentry from '@sentry/react';
 import { getMe } from '@/apis/user.api';
 import { logoutApi } from '@/apis/auth.api';
@@ -14,7 +13,7 @@ function hasToken() {
 }
 
 /**
- * The label a human reads in PostHog and Sentry instead of a UUID.
+ * The label a human reads in Sentry instead of a UUID.
  *
  * `firstName`/`lastName` are non-optional on the User type but are free-text
  * columns that can hold empty strings, so the join is trimmed and falls back to
@@ -49,21 +48,12 @@ export function useAuth() {
     staleTime: Infinity,
   });
 
-  // Covers both ways a session appears: login() seeding the cache and the
-  // ['auth','me'] query resolving on a page load. `__loaded` is false when no
-  // VITE_POSTHOG_KEY was set, so identify never fires with analytics off, and
-  // posthog itself drops repeat identify calls for the same distinct id.
+  // Covers both ways a session appears: login() seeding the cache, and the
+  // ['auth','me'] query resolving on a page load. Off production Sentry was
+  // never initialised, so this is a no-op there rather than a second code path.
   useEffect(() => {
     if (!user) return;
-    if (posthog.__loaded) {
-      posthog.identify(`user_${user.id}`, {
-        email: user.email,
-        role: user.role,
-        name: displayName(user),
-      });
-    }
-    // Sentry carries the same identity so an error report names the admin who
-    // hit it. Independent of posthog's guard, and a no-op off production.
+    // Names the admin who hit an error, instead of only where it happened.
     Sentry.setUser({
       id: user.id,
       email: user.email,
@@ -83,14 +73,9 @@ export function useAuth() {
     try {
       await logoutApi();
     } finally {
-      // Unlink the device from the person before the redirect, or the next
-      // admin to sign in on this browser would inherit this session's replay
-      // and event identity.
-      if (posthog.__loaded) {
-        posthog.reset();
-      }
-      // Same reason as posthog.reset(): the next admin on this browser must not
-      // inherit this account's name on their crash reports.
+      // Unlink the identity before the redirect: on a shared browser the next
+      // admin to sign in must not inherit this account's name on their crash
+      // reports.
       Sentry.setUser(null);
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       queryClient.clear();
