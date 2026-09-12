@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
 import posthog from 'posthog-js';
+import * as Sentry from '@sentry/react';
 import { getMe } from '@/apis/user.api';
 import { logoutApi } from '@/apis/auth.api';
 import { ROUTES, STORAGE_KEYS } from '@/lib/constants';
@@ -10,6 +11,22 @@ const AUTH_QUERY_KEY = ['auth', 'me'] as const;
 
 function hasToken() {
   return !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+}
+
+/**
+ * The label a human reads in PostHog and Sentry instead of a UUID.
+ *
+ * `firstName`/`lastName` are non-optional on the User type but are free-text
+ * columns that can hold empty strings, so the join is trimmed and falls back to
+ * the email address — a person row labelled " " is worse than one labelled by
+ * address.
+ */
+function displayName(user: {
+  firstName: string;
+  lastName: string;
+  email: string;
+}): string {
+  return `${user.firstName} ${user.lastName}`.trim() || user.email;
 }
 
 export function useAuth() {
@@ -37,9 +54,21 @@ export function useAuth() {
   // VITE_POSTHOG_KEY was set, so identify never fires with analytics off, and
   // posthog itself drops repeat identify calls for the same distinct id.
   useEffect(() => {
-    if (user && posthog.__loaded) {
-      posthog.identify(`user_${user.id}`, { email: user.email, role: user.role });
+    if (!user) return;
+    if (posthog.__loaded) {
+      posthog.identify(`user_${user.id}`, {
+        email: user.email,
+        role: user.role,
+        name: displayName(user),
+      });
     }
+    // Sentry carries the same identity so an error report names the admin who
+    // hit it. Independent of posthog's guard, and a no-op off production.
+    Sentry.setUser({
+      id: user.id,
+      email: user.email,
+      username: displayName(user),
+    });
   }, [user]);
 
   const login = useCallback(
@@ -60,6 +89,9 @@ export function useAuth() {
       if (posthog.__loaded) {
         posthog.reset();
       }
+      // Same reason as posthog.reset(): the next admin on this browser must not
+      // inherit this account's name on their crash reports.
+      Sentry.setUser(null);
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       queryClient.clear();
       window.location.href = ROUTES.SIGN_IN;
