@@ -9,7 +9,7 @@
     "build:e2e": "VITE_API_BASE_URL=http://localhost:3020 VITE_GOOGLE_CLIENT_ID=ui-test-client vite build",
     "lint": "eslint .",
     "preview": "npm run build && wrangler dev",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "bash scripts/deploy-production.sh",
     "test:e2e": "playwright test --config e2e/playwright.config.ts"
   },
   "dependencies": {
