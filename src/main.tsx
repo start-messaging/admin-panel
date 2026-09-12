@@ -1,6 +1,3 @@
-// First import on purpose: Sentry has to be initialised before any other
-// module runs, or an error thrown during their evaluation goes unreported.
-import './instrument';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -15,17 +12,24 @@ import './index.css';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-// No product analytics in this app, deliberately.
+// No third-party telemetry in this app at all — no analytics, no error
+// reporting. That is a decision, not an omission.
 //
-// PostHog covers the two customer-facing surfaces — app.startmessaging.com and
-// startmessaging.com — and nothing else. Staff traffic was actively harmful in
-// there: an admin paging through the customer list produced $pageviews
-// indistinguishable from real product usage, so every funnel and active-user
-// number was inflated by our own back-office work. Replays of these screens were
-// worse, since they render customer PAN and KYC documents as text, which no
-// amount of input masking covers.
+// PostHog covers the two customer-facing surfaces (app.startmessaging.com and
+// startmessaging.com) and nothing else: staff traffic in there was actively
+// harmful, because an admin paging through the customer list produced $pageviews
+// indistinguishable from real product usage, inflating every funnel and
+// active-user figure with our own back-office work.
 //
-// Error reporting is separate and stays — see instrument.ts.
+// Sentry is gone for the adjacent reason. These screens render customer PAN
+// numbers and KYC documents as page text, so anything that captures context from
+// them — a replay, a stack frame's surrounding state, an attached component tree
+// — is a store of customer identity documents. This panel has one operator, who
+// sees a failure the moment it happens, so the exchange was a poor one.
+//
+// The consequence, stated plainly: an error here reaches the operator's own
+// console and nowhere else. If this panel ever has more than one user, that
+// trade needs revisiting.
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

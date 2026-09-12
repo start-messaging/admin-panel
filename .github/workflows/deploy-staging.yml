@@ -39,13 +39,11 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ vars.STAGING_API_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ vars.STAGING_GOOGLE_CLIENT_ID }}
-          # These are the STAGING_-prefixed repository variables, matching every
-          # other staging value above. Get a name wrong here and nothing tells
-          # you: GitHub expands an unset `vars.X` to an empty string, the build
-          # succeeds, and the app reads empty as "analytics and error reporting
-          # off". The deploy stays green and the telemetry simply never arrives —
-          # which is how this panel ran on staging with Sentry dark.
-          VITE_SENTRY_DSN: ${{ vars.STAGING_SENTRY_DSN }}
+          # Two variables, and that is the whole list: this panel sends no
+          # analytics and no error reports anywhere (see src/main.tsx). Both
+          # values below are asserted after the build, because an unset
+          # `vars.X` expands to an empty string and a build with no API URL
+          # deploys green and simply cannot talk to anything.
         run: npm run build
 
       # Cheap insurance against a build that silently picked up the wrong

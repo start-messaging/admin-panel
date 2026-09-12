@@ -24,7 +24,6 @@ set -euo pipefail
 
 : "${VITE_API_BASE_URL:?set VITE_API_BASE_URL=https://api.startmessaging.com}"
 : "${VITE_GOOGLE_CLIENT_ID:?set VITE_GOOGLE_CLIENT_ID}"
-: "${VITE_SENTRY_DSN:?set VITE_SENTRY_DSN}"
 
 fail() { printf 'REFUSING TO DEPLOY: %s\n' "$1" >&2; exit 1; }
 
