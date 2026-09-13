@@ -19,6 +19,7 @@ export const USER_SORT_OPTIONS = [
   'last_login',
   'kyc_status',
   'role',
+  'wallet_balance',
 ] as const satisfies readonly UserListSortBy[];
 
 export const ACCOUNT_STATUS_OPTIONS = ['', 'active', 'suspended'] as const;

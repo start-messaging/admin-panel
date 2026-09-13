@@ -9,6 +9,7 @@ import {
   Clock,
   Shield,
   Pencil,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -45,6 +46,7 @@ const USER_LIST_SORT_KEYS: UserListSortBy[] = [
   'last_login',
   'kyc_status',
   'role',
+  'wallet_balance',
 ];
 
 function parseSortPreset(preset: string): {
@@ -74,6 +76,8 @@ const SORT_PRESETS: { value: string; label: string }[] = [
   { value: 'name:desc', label: 'Name: Z → A' },
   { value: 'email:asc', label: 'Email: A → Z' },
   { value: 'email:desc', label: 'Email: Z → A' },
+  { value: 'wallet_balance:desc', label: 'Balance: highest first' },
+  { value: 'wallet_balance:asc', label: 'Balance: lowest first' },
   { value: 'last_called:desc', label: 'Last called: most recent' },
   { value: 'last_called:asc', label: 'Last called: least recent' },
   { value: 'last_login:desc', label: 'Last login: most recent' },
@@ -183,7 +187,7 @@ function CallTrackingEditModal({
             </label>
             <input
               type="datetime-local"
-              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              className="h-10 w-full rounded-md border bg-background px-3 text-base sm:h-9 sm:text-sm"
               value={lastCalled}
               onChange={(e) => setLastCalled(e.target.value)}
             />
@@ -192,11 +196,18 @@ function CallTrackingEditModal({
                 type="button"
                 variant="secondary"
                 size="sm"
+                className="h-9"
                 onClick={() => setLastCalled(isoToDatetimeLocalValue(new Date().toISOString()))}
               >
                 Set to now
               </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setLastCalled('')}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9"
+                onClick={() => setLastCalled('')}
+              >
                 Clear
               </Button>
             </div>
@@ -206,7 +217,7 @@ function CallTrackingEditModal({
               Notes
             </label>
             <textarea
-              className="min-h-[100px] w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="min-h-[100px] w-full rounded-md border bg-background px-3 py-2 text-base sm:text-sm"
               placeholder="Call outcome, follow-up…"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -214,10 +225,16 @@ function CallTrackingEditModal({
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+          <Button type="button" variant="outline" size="sm" className="h-9" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="button" size="sm" disabled={updateUser.isPending} onClick={handleSave}>
+          <Button
+            type="button"
+            size="sm"
+            className="h-9"
+            disabled={updateUser.isPending}
+            onClick={handleSave}
+          >
             {updateUser.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Save'}
           </Button>
         </div>
@@ -252,8 +269,174 @@ const KYC_BADGE: Record<
   },
 };
 
+const BADGE_BASE =
+  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium';
+
+function KycBadge({ status }: { status: KycStatus }) {
+  const kyc = KYC_BADGE[status];
+  const Icon = kyc.icon;
+  return (
+    <HelpBadge help={KYC_STATUS_HELP[status]} className={cn(BADGE_BASE, kyc.className)}>
+      <Icon className="size-3" />
+      {kyc.label}
+    </HelpBadge>
+  );
+}
+
+function AccountBadge({ isActive }: { isActive: boolean }) {
+  return (
+    <HelpBadge
+      help={isActive ? ACCOUNT_STATUS_HELP.active : ACCOUNT_STATUS_HELP.suspended}
+      className={cn(
+        BADGE_BASE,
+        isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700',
+      )}
+    >
+      <span
+        className={cn('size-1.5 rounded-full', isActive ? 'bg-green-500' : 'bg-red-500')}
+      />
+      {isActive ? 'Active' : 'Suspended'}
+    </HelpBadge>
+  );
+}
+
+function RoleBadge({ role }: { role: User['role'] }) {
+  return (
+    <span
+      className={cn(
+        BADGE_BASE,
+        'capitalize',
+        role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700',
+      )}
+    >
+      {role}
+    </span>
+  );
+}
+
+function formatDate(value: string | Date) {
+  return new Date(value).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function formatDateTime(value: string | Date | null | undefined) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * The phone-sized rendering of one customer.
+ *
+ * A ten-column table on a 390px screen is a horizontal-scrolling puzzle, so
+ * below `md` the same row is re-laid out as a card: identity and balance on
+ * the first line (the two things an admin scans for), then state, then the
+ * call-tracking detail that only matters once a specific customer is found.
+ */
+function CustomerCard({
+  user,
+  onEditTracking,
+}: {
+  user: User;
+  onEditTracking: () => void;
+}) {
+  const notes = user.adminCallNotes?.trim() ?? '';
+
+  return (
+    <li className="p-4">
+      <div className="flex items-start gap-3">
+        <Link to={`/customers/${user.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            {user.firstName?.[0]}
+            {user.lastName?.[0]}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-medium">
+              {user.firstName} {user.lastName}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+          </div>
+        </Link>
+        <div className="shrink-0 text-right">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Balance
+          </p>
+          <p className="font-semibold tabular-nums">{formatINR(user.walletBalance)}</p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <KycBadge status={user.kycStatus} />
+        <AccountBadge isActive={user.isActive} />
+        <RoleBadge role={user.role} />
+      </div>
+
+      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">Mobile</dt>
+          <dd className="truncate font-mono">
+            {user.mobileNumber ? (
+              // Tapping a number on a phone should dial it.
+              <a href={`tel:${user.mobileNumber}`} className="underline-offset-2 hover:underline">
+                {user.mobileNumber}
+              </a>
+            ) : (
+              '—'
+            )}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">Joined</dt>
+          <dd className="truncate">{formatDate(user.createdAt)}</dd>
+        </div>
+        <div className="col-span-2 min-w-0">
+          <dt className="text-muted-foreground">Last called</dt>
+          <dd className="truncate">{formatDateTime(user.adminLastCalledAt)}</dd>
+        </div>
+        {notes && (
+          <div className="col-span-2 min-w-0">
+            <dt className="text-muted-foreground">Notes</dt>
+            <dd className="whitespace-pre-wrap break-words">{notes}</dd>
+          </div>
+        )}
+      </dl>
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <UserTagsEditor
+            userId={user.id}
+            tags={user.tags ?? []}
+            derivedTags={user.derivedTags ?? []}
+          />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0"
+          aria-label={`Edit call tracking for ${user.firstName} ${user.lastName}`}
+          onClick={onEditTracking}
+        >
+          <Pencil className="size-4" />
+          Call log
+        </Button>
+      </div>
+    </li>
+  );
+}
+
 export function CustomersPage() {
   const [trackingUser, setTrackingUser] = useState<User | null>(null);
+  /** Mobile only — from `sm` up the filter row is always on screen. */
+  const [showFilters, setShowFilters] = useState(false);
 
   const {
     data,
@@ -275,6 +458,13 @@ export function CustomersPage() {
   const sortPreset = `${filters.sortBy}:${filters.sortOrder}`;
   const users = data?.data ?? [];
   const pagination = data?.pagination;
+
+  // What the collapsed mobile panel hides: the search term has its own visible
+  // box, so it is not counted here.
+  const activeFilterCount =
+    (filters.status ? 1 : 0) +
+    (filters.kycStatus ? 1 : 0) +
+    (sortPreset === 'created_at:desc' ? 0 : 1);
 
   function applySearch() {
     setFilters({ search: searchInput.trim() });
@@ -300,14 +490,14 @@ export function CustomersPage() {
         </div>
 
         <div className="min-w-0 rounded-lg border bg-muted/30 p-3 sm:p-4">
-          <div className="flex min-w-0 flex-wrap items-end gap-x-2 gap-y-3">
-            <div className="flex min-w-[min(100%,200px)] max-w-[260px] flex-1 flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-[260px]">
               <label className="text-xs font-medium text-muted-foreground">Search</label>
               <input
                 type="search"
                 enterKeyHint="search"
-                placeholder="Name, email, mobile, company, PAN, GSTIN, website…"
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                placeholder="Name, email, mobile, company…"
+                className="h-10 w-full rounded-md border bg-background px-3 text-base sm:h-9 sm:text-sm"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -315,18 +505,46 @@ export function CustomersPage() {
                 }}
               />
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-9 shrink-0"
-              onClick={applySearch}
-            >
-              Search
-            </Button>
-            <div className="flex w-[min(100%,160px)] min-w-[140px] flex-col gap-1 sm:w-auto">
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-10 flex-1 sm:h-9 sm:flex-none"
+                onClick={applySearch}
+              >
+                Search
+              </Button>
+              {/* Three selects eat the whole first screen on a phone, so below
+                  `sm` they collapse behind a toggle that carries a count of the
+                  ones already applied. */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 flex-1 sm:hidden"
+                aria-expanded={showFilters}
+                onClick={() => setShowFilters((open) => !open)}
+              >
+                <SlidersHorizontal className="size-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-0.5 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              'mt-3 min-w-0 flex-wrap items-end gap-x-2 gap-y-3 sm:flex',
+              showFilters ? 'flex' : 'hidden',
+            )}
+          >
+            <div className="flex w-full flex-col gap-1 sm:w-[160px]">
               <label className="text-xs font-medium text-muted-foreground">Account</label>
               <select
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border bg-background px-3 text-base sm:h-9 sm:text-sm"
                 value={filters.status}
                 onChange={(e) =>
                   setFilters({
@@ -339,10 +557,10 @@ export function CustomersPage() {
                 <option value="suspended">Suspended</option>
               </select>
             </div>
-            <div className="flex w-[min(100%,180px)] min-w-[150px] flex-col gap-1 sm:w-auto">
+            <div className="flex w-full flex-col gap-1 sm:w-[180px]">
               <label className="text-xs font-medium text-muted-foreground">KYC status</label>
               <select
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border bg-background px-3 text-base sm:h-9 sm:text-sm"
                 value={filters.kycStatus}
                 onChange={(e) =>
                   setFilters({
@@ -357,10 +575,10 @@ export function CustomersPage() {
                 ))}
               </select>
             </div>
-            <div className="flex min-w-[200px] max-w-[min(100%,280px)] flex-col gap-1 sm:max-w-[280px]">
+            <div className="flex w-full flex-col gap-1 sm:w-[240px]">
               <label className="text-xs font-medium text-muted-foreground">Sort</label>
               <select
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border bg-background px-3 text-base sm:h-9 sm:text-sm"
                 value={sortPreset}
                 onChange={(e) => setFilters(parseSortPreset(e.target.value))}
               >
@@ -376,7 +594,7 @@ export function CustomersPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 shrink-0 text-muted-foreground"
+                className="h-10 w-full shrink-0 text-muted-foreground sm:h-9 sm:w-auto"
                 onClick={() => {
                   setSearchInput('');
                   resetFilters();
@@ -400,8 +618,23 @@ export function CustomersPage() {
           <p className="text-sm">No users found</p>
         </div>
       ) : (
-        <div className="max-w-full overflow-hidden rounded-xl border">
-          <div className="touch-pan-x overflow-x-auto overscroll-x-contain">
+        <>
+          {/* Phones get cards, not a sideways table. The old wrapper also set
+              `touch-action: pan-x`, which told the browser a finger on the
+              table could only pan horizontally — so the page itself would not
+              scroll vertically while the table was under the thumb. */}
+          <ul className="divide-y overflow-hidden rounded-xl border md:hidden">
+            {users.map((user) => (
+              <CustomerCard
+                key={user.id}
+                user={user}
+                onEditTracking={() => setTrackingUser(user)}
+              />
+            ))}
+          </ul>
+
+          <div className="hidden max-w-full overflow-hidden rounded-xl border md:block">
+            <div className="overflow-x-auto overscroll-x-contain">
             <table className="w-full min-w-max text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -439,9 +672,6 @@ export function CustomersPage() {
             </thead>
             <tbody>
               {users.map((user) => {
-                const kyc = KYC_BADGE[user.kycStatus];
-                const KycIcon = kyc.icon;
-
                 return (
                   <tr
                     key={user.id}
@@ -498,80 +728,31 @@ export function CustomersPage() {
                       {formatINR(user.walletBalance)}
                     </td>
                     <td className="min-w-[100px] px-4 py-3">
-                      <HelpBadge
-                        help={KYC_STATUS_HELP[user.kycStatus]}
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                          kyc.className,
-                        )}
-                      >
-                        <KycIcon className="size-3" />
-                        {kyc.label}
-                      </HelpBadge>
+                      <KycBadge status={user.kycStatus} />
                     </td>
                     <td className="min-w-[100px] px-4 py-3">
-                      <HelpBadge
-                        help={
-                          user.isActive
-                            ? ACCOUNT_STATUS_HELP.active
-                            : ACCOUNT_STATUS_HELP.suspended
-                        }
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                          user.isActive
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'size-1.5 rounded-full',
-                            user.isActive ? 'bg-green-500' : 'bg-red-500',
-                          )}
-                        />
-                        {user.isActive ? 'Active' : 'Suspended'}
-                      </HelpBadge>
+                      <AccountBadge isActive={user.isActive} />
                     </td>
                     <td className="min-w-[168px] whitespace-nowrap px-4 py-3 text-muted-foreground">
-                      {user.adminLastCalledAt
-                        ? new Date(user.adminLastCalledAt).toLocaleString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : '—'}
+                      {formatDateTime(user.adminLastCalledAt)}
                     </td>
                     <td className="min-w-[248px] px-4 py-3 align-top">
                       <CustomerNotesCell notes={user.adminCallNotes} />
                     </td>
                     <td className="min-w-[88px] px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                          user.role === 'admin'
-                            ? 'bg-violet-100 text-violet-700'
-                            : 'bg-blue-100 text-blue-700',
-                        )}
-                      >
-                        {user.role}
-                      </span>
+                      <RoleBadge role={user.role} />
                     </td>
                     <td className="min-w-[96px] px-4 py-3 text-muted-foreground">
-                      {new Date(user.createdAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
+                      {formatDate(user.createdAt)}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <Pagination
