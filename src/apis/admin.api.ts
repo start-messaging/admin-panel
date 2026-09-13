@@ -76,7 +76,8 @@ export type UserListSortBy =
   | 'last_called'
   | 'last_login'
   | 'kyc_status'
-  | 'role';
+  | 'role'
+  | 'wallet_balance';
 
 export interface UserListParams {
   page?: number;
