@@ -1,13 +1,8 @@
-// First import on purpose: Sentry has to be initialised before any other
-// module runs, or an error thrown during their evaluation goes unreported.
-import './instrument';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import posthog from 'posthog-js';
-import { PostHogProvider } from '@posthog/react';
 import { Toaster } from 'sonner';
 import { queryClient } from '@/lib/query-client';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -17,36 +12,38 @@ import './index.css';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-// No key (local dev, CI) = analytics off. The provider still gets the client
-// below — an uninitialised PostHog instance just no-ops every call, which is
-// exactly the behaviour we want instead of a second code path.
-if (import.meta.env.VITE_POSTHOG_KEY) {
-  posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
-    defaults: '2025-05-24',
-    person_profiles: 'identified_only',
-    // Admin sessions are recorded in full by design ("record session
-    // complete") — masking inputs keeps customer PII typed into forms
-    // (emails, PAN numbers) out of the recordings.
-    session_recording: { maskAllInputs: true },
-  });
-}
+// No third-party telemetry in this app at all — no analytics, no error
+// reporting. That is a decision, not an omission.
+//
+// PostHog covers the two customer-facing surfaces (app.startmessaging.com and
+// startmessaging.com) and nothing else: staff traffic in there was actively
+// harmful, because an admin paging through the customer list produced $pageviews
+// indistinguishable from real product usage, inflating every funnel and
+// active-user figure with our own back-office work.
+//
+// Sentry is gone for the adjacent reason. These screens render customer PAN
+// numbers and KYC documents as page text, so anything that captures context from
+// them — a replay, a stack frame's surrounding state, an attached component tree
+// — is a store of customer identity documents. This panel has one operator, who
+// sees a failure the moment it happens, so the exchange was a poor one.
+//
+// The consequence, stated plainly: an error here reaches the operator's own
+// console and nowhere else. If this panel ever has more than one user, that
+// trade needs revisiting.
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PostHogProvider client={posthog}>
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider delay={200} closeDelay={0}>
-            <ErrorBoundary>
-              <BrowserRouter>
-                <App />
-                <Toaster richColors position="top-right" />
-              </BrowserRouter>
-            </ErrorBoundary>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </GoogleOAuthProvider>
-    </PostHogProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider delay={200} closeDelay={0}>
+          <ErrorBoundary>
+            <BrowserRouter>
+              <App />
+              <Toaster richColors position="top-right" />
+            </BrowserRouter>
+          </ErrorBoundary>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   </StrictMode>,
 );

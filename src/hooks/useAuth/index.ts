@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect } from 'react';
-import posthog from 'posthog-js';
+import { useCallback } from 'react';
 import { getMe } from '@/apis/user.api';
 import { logoutApi } from '@/apis/auth.api';
 import { ROUTES, STORAGE_KEYS } from '@/lib/constants';
@@ -32,16 +31,6 @@ export function useAuth() {
     staleTime: Infinity,
   });
 
-  // Covers both ways a session appears: login() seeding the cache and the
-  // ['auth','me'] query resolving on a page load. `__loaded` is false when no
-  // VITE_POSTHOG_KEY was set, so identify never fires with analytics off, and
-  // posthog itself drops repeat identify calls for the same distinct id.
-  useEffect(() => {
-    if (user && posthog.__loaded) {
-      posthog.identify(`user_${user.id}`, { email: user.email, role: user.role });
-    }
-  }, [user]);
-
   const login = useCallback(
     (accessToken: string, userData: User) => {
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
@@ -54,12 +43,6 @@ export function useAuth() {
     try {
       await logoutApi();
     } finally {
-      // Unlink the device from the person before the redirect, or the next
-      // admin to sign in on this browser would inherit this session's replay
-      // and event identity.
-      if (posthog.__loaded) {
-        posthog.reset();
-      }
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       queryClient.clear();
       window.location.href = ROUTES.SIGN_IN;

@@ -1,5 +1,4 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import * as Sentry from "@sentry/react";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,14 +22,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // The console is the only destination: this panel sends nothing to a
+    // third party (see main.tsx). The component stack goes with it, because it
+    // is the part that says *where* the crash was, and it is otherwise lost.
     console.error("Uncaught error:", error, errorInfo);
-    // Guarded on the DSN: without it Sentry.init never ran (instrument.ts),
-    // and the fallback copy's "we've been notified" would be a lie either way.
-    if (import.meta.env.VITE_SENTRY_DSN) {
-      Sentry.captureException(error, {
-        extra: { componentStack: errorInfo.componentStack },
-      });
-    }
   }
 
   private handleReset = () => {
@@ -47,7 +42,8 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
           <h2 className="mt-4 text-xl font-semibold">Something went wrong</h2>
           <p className="mt-2 text-sm text-muted-foreground max-w-md">
-            The application encountered an unexpected error. We've been notified and are working on it.
+            The application encountered an unexpected error. Details are in the
+            browser console; refreshing usually clears it.
           </p>
           {this.state.error && (
             <pre className="mt-4 rounded bg-muted p-3 text-left text-[10px] font-mono text-muted-foreground overflow-auto max-w-xl max-h-32">

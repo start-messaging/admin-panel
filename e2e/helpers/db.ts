@@ -11,7 +11,7 @@ import { DB, REDIS_KEY_PREFIX, REDIS_URL } from './test-env';
  *
  * Same shape as server/tests/e2e/helpers/db.ts — guard first, truncate in
  * FK-safe order — and now the same guard too, since both suites share
- * `sm_test`.
+ * `startmessaging_test`.
  */
 
 let client: Client | null = null;
@@ -25,7 +25,7 @@ export async function db(): Promise<Client> {
   if (!/e2e|test/i.test(DB.name)) {
     throw new Error(
       `Refusing to run UI e2e tests against database "${DB.name}". ` +
-        `The suite truncates tables; point it at the sm_test database.`,
+        `The suite truncates tables; point it at the startmessaging_test database.`,
     );
   }
 

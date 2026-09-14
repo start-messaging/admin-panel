@@ -7,6 +7,25 @@ export type {
 } from './api-error';
 export type { Channel, OtpTemplate, TemplateStatus } from './template';
 export type {
+  RateEnvelope,
+  GrowthGranularity,
+  GrowthWindow,
+  SignupBucket,
+  FunnelStageKey,
+  FunnelStage,
+  GrowthFunnel,
+  GrowthCalling,
+  ReminderStage,
+  ReminderBlockedStep,
+  ReminderStatus,
+  ReminderCopy,
+  ReminderSend,
+  GrowthEmail,
+  GrowthAsOf,
+  GrowthResponse,
+  GrowthNoteRow,
+} from './growth';
+export type {
   MessageStatus,
   AdminMessage,
   CustomerOverview,
