@@ -180,8 +180,8 @@ export function EmailSection({ email }: { email: GrowthEmail }) {
             </p>
             {email.neverAny && (
               <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-                The six variants below are what this system would send once the
-                sweep is switched on — read them as a plan, not as history.
+                The six variants below are what production sends as accounts
+                become eligible — read them as a plan, not as history.
               </p>
             )}
           </div>
