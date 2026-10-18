@@ -58,6 +58,7 @@ import { isoToDatetimeLocalValue } from '@/lib/datetime';
 import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { MessageDetailModal } from './message-detail-modal';
+import { MessageTextCell } from './message-text-cell';
 import { UserTagsEditor } from '@/components/tags/user-tags-editor';
 import {
   useAdminUserDetail,
@@ -791,6 +792,12 @@ export function CustomerDetailPage() {
                       <th className="px-4 py-2.5 font-semibold">Recipient</th>
                       <th className="px-4 py-2.5 font-semibold">Status</th>
                       <th className="px-4 py-2.5 font-semibold">Template</th>
+                      <th
+                        className="px-4 py-2.5 font-semibold"
+                        title="Text handed to the provider, digits masked"
+                      >
+                        Message
+                      </th>
                       <th className="px-4 py-2.5 font-semibold">Provider</th>
                       <th className="px-4 py-2.5 font-semibold text-right">Cost</th>
                       <th className="min-w-[200px] px-4 py-2.5 font-semibold">
@@ -826,6 +833,9 @@ export function CustomerDetailPage() {
                               {msg.renderedContent ? 'fallback body' : '—'}
                             </span>
                           )}
+                        </td>
+                        <td className="px-4 py-3 align-top text-muted-foreground">
+                          <MessageTextCell text={msg.renderedContent} />
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{msg.provider}</td>
                         <td className="px-4 py-3 text-right font-medium">{formatINR(msg.costAmount)}</td>

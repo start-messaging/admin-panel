@@ -9,6 +9,7 @@ import { HelpBadge } from '@/components/common/help-badge';
 import { MESSAGE_STATUS_HELP, MESSAGES_COLUMN_HELP } from '@/lib/help-copy';
 import { Pagination } from '@/components/ui/pagination';
 import { MessageDetailModal } from '@/pages/customers/message-detail-modal';
+import { MessageTextCell } from '@/pages/customers/message-text-cell';
 import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import type { AdminMessage, MessageStatus } from '@/types';
@@ -158,6 +159,12 @@ export function MessagesLookupPage() {
                       <HeaderTooltip label="Status" help={MESSAGES_COLUMN_HELP.status} />
                     </th>
                     <th className="px-4 py-2.5 font-semibold">Template</th>
+                    <th
+                      className="px-4 py-2.5 font-semibold"
+                      title="Text handed to the provider, digits masked"
+                    >
+                      Message
+                    </th>
                     <th className="min-w-[220px] px-4 py-2.5 font-semibold">
                       Why it failed (provider)
                     </th>
@@ -209,6 +216,9 @@ export function MessagesLookupPage() {
                         {msg.otpTemplate?.name ?? (
                           <span className="italic opacity-60">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 align-top text-muted-foreground">
+                        <MessageTextCell text={msg.renderedContent} />
                       </td>
                       <td className="max-w-md px-4 py-3 align-top text-muted-foreground">
                         <p className="whitespace-pre-wrap break-words text-[11px] leading-snug">
