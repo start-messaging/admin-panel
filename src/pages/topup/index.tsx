@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Wallet, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { topupWallet, getUsers, type TopupResult } from '@/apis/admin.api';
+import {
+  topupWallet,
+  getUsers,
+  type TopupReason,
+  type TopupResult,
+} from '@/apis/admin.api';
 import type { User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { ActionTooltip } from '@/components/common/action-tooltip';
@@ -16,6 +21,7 @@ import {
   ComboboxSearchInput,
 } from '@/components/ui/combobox';
 import { ROUTES } from '@/lib/constants';
+import { CustomPaymentCalculator } from './custom-payment-calculator';
 import { cn } from '@/lib/utils';
 
 /**
@@ -114,6 +120,9 @@ export function TopupPage() {
         amount: Number(amount),
         description: description.trim(),
         internalNote: internalNote.trim() || undefined,
+        // Only "Payment received" is money in. Left unpicked, nothing is sent
+        // and the server does not count the credit as a collection.
+        reason: (reason as TopupReason | null) ?? undefined,
       }),
     onSuccess: (data) => {
       setResult(data);
@@ -316,6 +325,13 @@ export function TopupPage() {
               })}
             </div>
 
+            {reason !== 'payment' && (
+              <p className="mb-2 text-[10px] text-amber-700">
+                Only &ldquo;Payment received&rdquo; counts toward dashboard
+                collections. Goodwill and promotional credits do not.
+              </p>
+            )}
+
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               Description — the customer sees this
             </label>
@@ -404,6 +420,11 @@ export function TopupPage() {
           </div>
         )}
       </div>
+
+      <CustomPaymentCalculator
+        credit={amount}
+        onUseCredit={(value) => setAmount(String(value))}
+      />
     </div>
   );
 }

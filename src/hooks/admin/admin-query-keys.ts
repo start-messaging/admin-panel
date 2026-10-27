@@ -31,6 +31,8 @@ export const adminQueryKeys = {
   templates: (filters: Record<string, unknown>) =>
     ['admin', 'templates', filters] as const,
 
+  collections: (days: number) => ['admin', 'collections', days] as const,
+
   dailyUsage: (filters: Record<string, unknown>) =>
     ['admin', 'daily-usage', filters] as const,
 

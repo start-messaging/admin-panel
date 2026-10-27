@@ -237,7 +237,7 @@ export const KYC_ACTION_HELP = {
 
 export const TOPUP_ACTION_HELP = {
   credit:
-    'Credits exactly this amount — no convenience fee or GST is added or deducted (fees only apply to customer-initiated Razorpay top-ups). One click = one ledger credit; there is no duplicate guard, so do not double-submit.',
+    'Credits exactly this amount — no fee or GST is added or deducted here. If the customer paid through Razorpay, work out the credit with the payment calculator first: the card was charged the gateway fee on top, which is not theirs to be credited. One click = one ledger credit; there is no duplicate guard, so do not double-submit.',
 } as const;
 
 // ── Dashboard ──────────────────────────────────────────
@@ -252,8 +252,8 @@ export const DASHBOARD_STAT_HELP: Record<string, string> = {
   totalMessages: 'Every message ever created, in any status — not just delivered ones.',
   platformRevenue:
     'Lifetime wallet debits for delivered messages — what customers actually spent on sends. Top-ups are not revenue; they only become revenue when spent. "Today" follows the IST calendar day.',
-  razorpay:
-    'Completed Razorpay wallet top-ups, all time — the credited amounts, excluding the convenience fee paid on top. "Today" is by order-creation time, midnight IST onward.',
+  collections:
+    'Money received from customers, all time: app checkouts plus payments credited by hand from Manual top-up with the reason "Payment received". The credited amounts, excluding the gateway fee paid on top. Goodwill and promotional credits are not included. "Today" is midnight IST onward, by when the wallet was credited.',
   successRate:
     'Delivered messages as a share of every message ever created — a lifetime figure, unlike "Failed today" beside it.',
   failedToday: 'Messages that failed since midnight IST — today only, unlike the lifetime success rate above.',

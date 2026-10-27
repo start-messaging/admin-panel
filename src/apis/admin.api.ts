@@ -28,6 +28,16 @@ export interface DashboardStats {
     razorpayPaymentsTotal: number;
     razorpayPaymentsToday: number;
     razorpayPaymentsCount: number;
+    /**
+     * Everything received: app checkouts AND payments credited by hand. The
+     * Razorpay-only fields above are what an older server answers, so these
+     * are optional until the server that sends them is live.
+     */
+    collectionsTotal?: number;
+    collectionsToday?: number;
+    collectionsCount?: number;
+    collectionsRazorpay?: number;
+    collectionsManual?: number;
   };
   growth: {
     newUsersToday: number;
@@ -205,11 +215,18 @@ export function searchMessages(
   return apiGet<PaginatedResponse<AdminMessage>>('/admin/messages', { params });
 }
 
+/**
+ * `payment` is money received outside the app and counts as a collection;
+ * `goodwill` and `promo` are given away and do not. Left out, it does not count.
+ */
+export type TopupReason = 'payment' | 'goodwill' | 'promo';
+
 export interface TopupPayload {
   email: string;
   amount: number;
   description: string;
   internalNote?: string;
+  reason?: TopupReason;
 }
 
 export interface TopupResult {
@@ -224,6 +241,64 @@ export interface TopupResult {
 /** Manual wallet credit by email. Admin-only; recorded against the actor. */
 export function topupWallet(payload: TopupPayload): Promise<TopupResult> {
   return apiPost<TopupResult>('/admin/wallet/topup', payload);
+}
+
+export interface CustomPaymentQuote {
+  /** Which fee rule the server is running: a flat percentage, or exact netting. */
+  mode: 'simple' | 'gross_up';
+  /** What the wallet is credited. */
+  amount: number;
+  /** The gateway's cut, passed on to the customer. */
+  convenienceFee: number;
+  /** What the customer pays: amount + convenienceFee. */
+  chargedAmount: number;
+}
+
+/**
+ * Works out a payment made outside the app, with the same fee rule the in-app
+ * checkout uses. Exactly one of the two: `credit` is "to credit this much, what
+ * should the customer pay?" and `paid` is "they paid this much, what do I
+ * credit?".
+ */
+export function getCustomPaymentQuote(
+  params: { credit: number } | { paid: number },
+): Promise<CustomPaymentQuote> {
+  return apiGet<CustomPaymentQuote>('/admin/payments/fee-quote', { params });
+}
+
+export interface CollectionsDay {
+  /** IST calendar date, YYYY-MM-DD. */
+  date: string;
+  /** Credited from app checkouts that day. */
+  razorpay: number;
+  /** Credited by hand as a payment received that day. */
+  manual: number;
+  total: number;
+  count: number;
+}
+
+export interface CollectionsData {
+  /** Oldest first, every day present. */
+  days: CollectionsDay[];
+  totals: {
+    total: number;
+    razorpay: number;
+    manual: number;
+    count: number;
+    averagePerDay: number;
+    bestDay: { date: string; total: number } | null;
+  };
+  /** The same-length period immediately before this one. */
+  previous: { total: number; count: number };
+  /** Null when the previous period had nothing to compare against. */
+  growthPercent: number | null;
+}
+
+/** Daily collections for the last `days` days, with growth against the period before. */
+export function getCollections(days: number): Promise<CollectionsData> {
+  return apiGet<CollectionsData>('/admin/dashboard/collections', {
+    params: { days },
+  });
 }
 
 export function listTags(): Promise<Tag[]> {

@@ -40,6 +40,7 @@ import {
   useUrlFilters,
 } from '@/hooks/useUrlFilters';
 import { ROUTES } from '@/lib/constants';
+import { CollectionsChart } from './collections-chart';
 
 /** Module-level so `useUrlFilters` can memoise on a stable identity. */
 const DAILY_USAGE_SCHEMA = {
@@ -160,13 +161,17 @@ export function DashboardPage() {
       help: DASHBOARD_STAT_HELP.platformRevenue,
     },
     {
-      label: 'Payments via Razorpay',
-      value: `₹${(overview?.razorpayPaymentsTotal ?? 0).toLocaleString('en-IN')}`,
-      description: `₹${(overview?.razorpayPaymentsToday ?? 0).toLocaleString('en-IN')} today · ${(overview?.razorpayPaymentsCount ?? 0).toLocaleString('en-IN')} completed`,
+      // Everything received, not just app checkouts: a payment credited by hand
+      // from Manual top-up is money in too. A server that predates the
+      // collections fields still answers the Razorpay-only ones, so the card
+      // falls back to those rather than reading zero.
+      label: 'Collections',
+      value: `₹${(overview?.collectionsTotal ?? overview?.razorpayPaymentsTotal ?? 0).toLocaleString('en-IN')}`,
+      description: `₹${(overview?.collectionsToday ?? overview?.razorpayPaymentsToday ?? 0).toLocaleString('en-IN')} today · ${(overview?.collectionsCount ?? overview?.razorpayPaymentsCount ?? 0).toLocaleString('en-IN')} payments`,
       icon: CreditCard,
       color: 'text-sky-600',
       iconBg: 'bg-sky-100',
-      help: DASHBOARD_STAT_HELP.razorpay,
+      help: DASHBOARD_STAT_HELP.collections,
     },
   ];
 
@@ -222,6 +227,9 @@ export function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/* Collections: are we growing? */}
+      <CollectionsChart />
 
       {/* Performance & Trends */}
       <div className="grid gap-6 lg:grid-cols-7">
