@@ -41,6 +41,7 @@ import {
 } from '@/hooks/useUrlFilters';
 import { ROUTES } from '@/lib/constants';
 import { CollectionsChart } from './collections-chart';
+import { SmsVolumeSection } from './sms-volume-section';
 
 /** Module-level so `useUrlFilters` can memoise on a stable identity. */
 const DAILY_USAGE_SCHEMA = {
@@ -230,6 +231,9 @@ export function DashboardPage() {
 
       {/* Collections: are we growing? */}
       <CollectionsChart />
+
+      {/* How much SMS is handled per day: mean, median, mode */}
+      <SmsVolumeSection />
 
       {/* Performance & Trends */}
       <div className="grid gap-6 lg:grid-cols-7">

@@ -33,6 +33,8 @@ export const adminQueryKeys = {
 
   collections: (days: number) => ['admin', 'collections', days] as const,
 
+  smsVolume: (days: number) => ['admin', 'sms-volume', days] as const,
+
   dailyUsage: (filters: Record<string, unknown>) =>
     ['admin', 'daily-usage', filters] as const,
 

@@ -301,6 +301,50 @@ export function getCollections(days: number): Promise<CollectionsData> {
   });
 }
 
+export interface SmsVolumeDay {
+  /** IST calendar date, YYYY-MM-DD. */
+  date: string;
+  total: number;
+  delivered: number;
+  failed: number;
+  /** Queued, sent or expired: not yet a final delivered or failed. */
+  other: number;
+  /** True for today: unfinished, so shown but not counted in the statistics. */
+  partial: boolean;
+}
+
+export interface SmsVolumeStats {
+  /** Days the figures cover. Today is never one of them. */
+  completeDays: number;
+  total: number;
+  mean: number;
+  median: number;
+  /** The most common volume band, with how many days fell in it. */
+  mode: { from: number; to: number; days: number; width: number };
+  /** A count that occurs on more than one day, when one does. */
+  exactMode: { value: number; days: number } | null;
+  min: { date: string; total: number };
+  max: { date: string; total: number };
+}
+
+export interface SmsVolumeData {
+  /** Oldest first, every day present; the last is today. */
+  days: SmsVolumeDay[];
+  /** Null when the window has no complete day (a one-day window). */
+  stats: SmsVolumeStats | null;
+  today: SmsVolumeDay;
+  previous: { completeDays: number; mean: number } | null;
+  /** Mean against the block of days before. Null with nothing to compare. */
+  changePercent: number | null;
+}
+
+/** SMS handled per day for the last `days` days, with mean, median and mode. */
+export function getSmsVolume(days: number): Promise<SmsVolumeData> {
+  return apiGet<SmsVolumeData>('/admin/dashboard/sms-volume', {
+    params: { days },
+  });
+}
+
 export function listTags(): Promise<Tag[]> {
   return apiGet<Tag[]>('/admin/tags');
 }
